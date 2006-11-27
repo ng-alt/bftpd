@@ -20,4 +20,16 @@ void bftpdutmp_log(char type);
 char bftpdutmp_pidexists(pid_t pid);
 int bftpdutmp_usercount(char *username);
 
+/* Count logins from the same machine. */
+int bftpdutmp_dup_ip_count(char *ip_address); 
+
+/* Remove a log entry of a client
+matching the PID passed. This
+makes it look like the client logged
+out.
+-- Jesse
+*/
+void bftpdutmp_remove_pid(int pid);
+
 #endif
+

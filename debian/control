@@ -1,7 +1,7 @@
 Source: bftpd
 Section: net
 Priority: extra
-Maintainer: Max-Wilhelm Bruker <brukie@gmx.net>
+Maintainer: Jesse Smith <jessefrgsmith@yahoo.ca>
 Standards-Version: 3.0.1
 
 Package: bftpd

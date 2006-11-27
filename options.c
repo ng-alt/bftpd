@@ -4,16 +4,21 @@
 #include <grp.h>
 #include <unistd.h>
 
-#include <options.h>
-#include <mystring.h>
-#include <main.h>
-#include <login.h>
-#include <logging.h>
+#include "options.h"
+#include "mystring.h"
+#include "main.h"
+#include "login.h"
+#include "logging.h"
 
 struct global config_global;
 struct group_of_users *config_groups;
 struct user *config_users;
 
+/*
+Returns NULL on error. May return
+emtpy string "" for empty or
+commented lines.
+*/
 char *config_read_line(FILE *configfile)
 {
 	static char str[256];
@@ -61,7 +66,8 @@ void create_options(FILE *configfile, struct bftpd_option **options, struct dire
        				*options = opt = malloc(sizeof(struct bftpd_option));
        			}
        			opt->name = (char *) malloc(strlen(str));
-       			opt->value = (char *) malloc(strlen(str));
+       			// opt->value = (char *) malloc(strlen(str));
+                        opt->value = (char *) malloc( strlen(str) + 256);
        			sscanf(str, "%[^=]=\"%[^\n\"]", opt->name, opt->value);
             }
    		}
@@ -286,10 +292,12 @@ char *getoption_global(char *name)
     return NULL;
 }
 
+
+/* returns null string on falure or pointer to value */
 char *config_getoption(char *name)
 {
     static char empty = 0;
-    char *result;
+//    char *result;
 	char *foo;
     if (userinfo_set) {
         if ((foo = getoption_user(name)))
@@ -297,8 +305,8 @@ char *config_getoption(char *name)
         if ((foo = getoption_group(name)))
             return foo;
     }
-    if ((result = getoption_global(name)))
-        return result;
+    if ((foo = getoption_global(name)))
+        return foo;
     else
         return &empty;
 }
@@ -307,3 +315,125 @@ void config_end()
 {
     /* Needn't do anything ATM */
 }
+
+
+
+/*
+This function attempts to find a option, stored
+in memory, by the given name. It searches
+global options first, then group options and,
+finally, individual user options. If a value
+is found for the option, the function returns
+a pointer to the value of the option. If no match
+is found, an empty string is returned.
+-- Jesse
+*/
+char *config_getoption_reread(char *find_me)
+{
+    char *return_value;
+    static char empty_string = 0;
+
+    return_value = getoption(config_global.options, find_me);
+    if (return_value)
+       return return_value;
+
+    return &empty_string;
+}
+
+
+
+/*
+This function opens the config file and
+tries to reset some of the option values
+in memory.
+-- Jesse
+*/
+void Reread_Config_File()
+{
+    char *line;     // line in config file
+    char *config_value;    // value stored in memory
+    char *new_value;
+    FILE *config_file;
+    int xfer_delay;
+    int section = 0;     // where are we in the config file
+
+    // open config file
+    config_file = fopen(configpath, "r");
+    if (! config_file)
+       return;
+
+    /* read a line from the config file */
+    line = config_read_line(config_file);
+    while ( line )
+    {
+       if ( strchr(line, '{') )
+          section++;
+
+       /* look for reconized option name */
+       if ( strstr(line, "HELLO_STRING") )
+          config_value = config_getoption_reread("HELLO_STRING");
+       else if ( strstr(line, "QUIT_MSG") )
+          config_value = config_getoption_reread("QUIT_MSG");
+       else if ( strstr(line, "XFERBUFSIZE") )
+          config_value = config_getoption_reread("XFERBUFSIZE");
+       else if ( strstr(line, "DATA_TIMEOUT") )
+          config_value = config_getoption_reread("DATA_TIMEOUT");
+       else if ( strstr(line, "CONTROL_TIMEOUT") )
+          config_value = config_getoption_reread("CONTROL_TIMEOUT");
+       else if ( strstr(line, "USERLIMIT_GLOBAL") )
+          config_value = config_getoption_reread("USERLIMIT_GLOBAL");
+       else if ( strstr(line, "USERLIMIT_SINGLEUSER") )
+          config_value = config_getoption_reread("USERLIMIT_SINGLEUSER");
+       else if ( strstr(line, "USERLIMIT_HOST") )
+          config_value = config_getoption_reread("USERLIMIT_HOST");
+       else if ( strstr(line, "DENY_LOGIN") )
+          config_value = config_getoption_reread("DENY_LOGIN");
+       else if ( strstr(line, "XFER_DELAY") )
+          config_value = config_getoption_reread("XFER_DELAY");
+       else if ( strstr(line, "GZ_UPLOAD") )
+          config_value = config_getoption_reread("GZ_UPLOAD");
+       else
+          config_value = NULL;
+
+       /* get new value from input */
+       new_value = strchr(line, '"') ;
+       if (new_value)
+       {
+           char *temp;
+           new_value++;      // go to first character after quote
+           temp = strchr(new_value, '"');  
+           if (temp)
+              temp[0] = '\0';    // null terminal string
+       }
+
+       /* set value of option */
+       if ( (config_value) && (new_value) && (section == 1) )
+       {
+           // make sure it will fit.
+           if ( strlen(new_value) < 256) 
+              strcpy(config_value, new_value);
+       }
+
+       line = config_read_line(config_file);
+    }       /* while not end of file */
+
+    fclose(config_file);
+
+    /* reset numeric values */
+    xfer_bufsize = strtoul( config_getoption("XFERBUFSIZE"), NULL, 0 );
+    if (! xfer_bufsize )
+       xfer_bufsize = XFER_BUFSIZE;
+
+    control_timeout = atoi( config_getoption("CONTROL_TIMEOUT") );
+    if (! control_timeout)
+       control_timeout = CONTROL_TIMEOUT;
+
+    data_timeout = atoi( config_getoption("DATA_TIMEOUT") );
+    if (! data_timeout)
+       data_timeout = DATA_TIMEOUT;
+
+    xfer_delay = atoi( config_getoption("XFER_DELAY") );
+}
+/* end of re-read config file */
+
+

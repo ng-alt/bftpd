@@ -1,6 +1,10 @@
 #ifndef __BFTPD_MAIN_H
 #define __BFTPD_MAIN_H
 
+
+#define TRUE 1
+#define FALSE 0
+
 #include <sys/types.h>
 
 struct bftpd_childpid {

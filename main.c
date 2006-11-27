@@ -60,6 +60,7 @@ GNU General Public License for more details.
 
 int global_argc;
 char **global_argv;
+char **my_argv_list;   // jesse
 struct sockaddr_in name;
 int isparent = 1;
 int listensocket, sock;
@@ -110,29 +111,55 @@ void end_child()
 	}
 }
 
+
+
+/*
+This function causes the program to 
+re-read parts of the config file.
+
+-- Jesse
+*/
+void handler_sighup(int sig)
+{
+   bftpd_log("Caught HUP signal. Re-reading config file.\n");
+   Reread_Config_File();
+   signal(sig, handler_sighup);
+}
+
+
+
+
 void handler_sigchld(int sig)
 {
 	pid_t pid;
 	int i;
-	struct bftpd_childpid *childpid;
-	pid = wait(NULL);					/* Get the child's return code so that the zombie dies */
+	struct bftpd_childpid *childpid; 
+
+        /* Get the child's return code so that the zombie dies */
+	pid = wait(NULL);          
 	for (i = 0; i < bftpd_list_count(child_list); i++) {
 		childpid = bftpd_list_get(child_list, i);
 		if (childpid->pid == pid) {
 			close(childpid->sock);
 			bftpd_list_del(&child_list, i);
 			free(childpid);
+                        /* make sure the child is removed from the log */
+                        bftpdutmp_remove_pid(pid);
 		}
 	}
 }
 
 void handler_sigterm(int signum)
 {
-	exit(0);					/* Force normal termination so that end_child() is called */
+        bftpdutmp_end();
+	exit(0);	/* Force normal termination so that end_child() is called */
 }
 
 void handler_sigalrm(int signum)
 {
+    /* Log user out. -- Jesse <slicer69@hotmail.com> */
+    bftpdutmp_end();
+
     if (alarm_type) {
         close(alarm_type);
         bftpd_log("Kicked from the server due to data connection timeout.\n");
@@ -162,6 +189,11 @@ int main(int argc, char **argv)
 	static struct hostent *he;
 	int i = 1, port;
 	int retval;
+        socklen_t my_length;
+
+        my_argv_list = argv;
+        signal(SIGHUP, handler_sighup);
+
 	while (((retval = getopt(argc, argv, "c:hdDin"))) > -1) {
 		switch (retval) {
 			case 'h':
@@ -193,7 +225,7 @@ int main(int argc, char **argv)
 		signal(SIGCHLD, handler_sigchld);
 		config_init();
 		chdir("/");
-        hidegroups_init();
+                hidegroups_init();
 		listensocket = socket(AF_INET, SOCK_STREAM, 0);
 #ifdef SO_REUSEADDR
 		setsockopt(listensocket, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
@@ -205,7 +237,7 @@ int main(int argc, char **argv)
 #endif
 		memset((void *) &myaddr, 0, sizeof(myaddr));
         if (!((port = strtoul(config_getoption("PORT"), NULL, 10))))
-            port = 21;
+            port = DEFAULT_PORT;
 		myaddr.sin_port = htons(port);
 		if (!strcasecmp(config_getoption("BIND_TO_ADDR"), "any")
 			|| !config_getoption("BIND_TO_ADDR")[0])
@@ -220,12 +252,13 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Listen failed: %s\n", strerror(errno));
 			exit(1);
 		}
+                
 		for (i = 0; i < 3; i++) {
 			close(i);		/* Remove fd pointing to the console */
 			open("/dev/null", O_RDWR);	/* Create fd pointing nowhere */
 		}
-		i = sizeof(new);
-		while ((sock = accept(listensocket, (struct sockaddr *) &new, &i))) {
+		my_length = sizeof(new);
+		while ((sock = accept(listensocket, (struct sockaddr *) &new, &my_length))) {
 			pid_t pid;
 			/* If accept() becomes interrupted by SIGCHLD, it will return -1.
 			 * So in order not to create a child process when that happens,
@@ -233,7 +266,7 @@ int main(int argc, char **argv)
 			 */
 			if (sock > 0) {
 				pid = fork();
-				if (!pid) {
+				if (!pid) {       /* child */
 					close(0);
 					close(1);
 					close(2);
@@ -241,7 +274,7 @@ int main(int argc, char **argv)
 					dup2(sock, fileno(stdin));
 					dup2(sock, fileno(stderr));
 					break;
-				} else {
+				} else {          /* parent */
 					struct bftpd_childpid *tmp_pid = malloc(sizeof(struct bftpd_childpid));
 					tmp_pid->pid = pid;
 					tmp_pid->sock = sock;
@@ -250,6 +283,9 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+        
+        /* Child only. From here on... */
+
 	devnull = fopen("/dev/null", "w");
 	global_argc = argc;
 	global_argv = argv;
@@ -259,16 +295,16 @@ int main(int argc, char **argv)
     signal(SIGALRM, handler_sigalrm);
     control_timeout = strtoul(config_getoption("CONTROL_TIMEOUT"), NULL, 0);
     if (!control_timeout)
-        control_timeout = 300;
+        control_timeout = CONTROL_TIMEOUT;
     data_timeout = strtoul(config_getoption("DATA_TIMEOUT"), NULL, 0);
     if (!data_timeout)
-        data_timeout = 300;
+        data_timeout = DATA_TIMEOUT;
     xfer_bufsize = strtoul(config_getoption("XFER_BUFSIZE"), NULL, 0);
     if (!xfer_bufsize)
-        xfer_bufsize = 4096;
+        xfer_bufsize = XFER_BUFSIZE;
 
-	i = sizeof(remotename);
-    if (getpeername(fileno(stderr), (struct sockaddr *) &remotename, &i)) {
+	my_length = sizeof(remotename);
+    if (getpeername(fileno(stderr), (struct sockaddr *) &remotename, &my_length)) {
 		control_printf(SL_FAILURE, "421-Could not get peer IP address.\r\n421 %s.",
 		               strerror(errno));
 		return 0;
@@ -289,8 +325,8 @@ int main(int argc, char **argv)
 		remotehostname = strdup(inet_ntoa(remotename.sin_addr));
 	bftpd_log("Incoming connection from %s.\n", remotehostname);
     bftpd_statuslog(1, 0, "connect %s", remotehostname);
-	i = sizeof(name);
-	getsockname(fileno(stdin), (struct sockaddr *) &name, &i);
+	my_length = sizeof(name);
+	getsockname(fileno(stdin), (struct sockaddr *) &name, &my_length);
 	print_file(220, config_getoption("MOTD_GLOBAL"));
 	/* Parse hello message */
 	strcpy(str, (char *) config_getoption("HELLO_STRING"));
@@ -303,6 +339,11 @@ int main(int argc, char **argv)
 	}
 	replace(str, "%i", (char *) inet_ntoa(name.sin_addr));
 	control_printf(SL_SUCCESS, "220 %s", str);
+
+        /* We might not get any data, so let's set an alarm before the
+           first read. -- Jesse <slicer69@hotmail.com> */
+        alarm(control_timeout);
+        
 	/* Read lines from client and execute appropriate commands */
 	while (fgets(str, sizeof(str), stdin)) {
         alarm(control_timeout);

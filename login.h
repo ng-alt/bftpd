@@ -23,3 +23,10 @@ int checkpass(char *password);
 int checkpass_pwd(char *password);
 int checkpass_pam(char *password);
 void end_pam();
+
+/* For use with FILE_PASSWORD option -- Jesse
+Returns, on success, path to the user's home directory.
+On failure it returns NULL.
+*/ 
+char *check_file_password(char *my_file, char *check_user, char *check_password);
+

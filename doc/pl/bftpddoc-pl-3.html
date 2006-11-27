@@ -1,91 +1,85 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
- <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.8.1">
- <TITLE>dokumentacja bftpd jezyk polski]: Konfiguracja</TITLE>
- <LINK HREF="bftpddoc-pl-4.html" REL=next>
- <LINK HREF="bftpddoc-pl-2.html" REL=previous>
- <LINK HREF="bftpddoc-pl.html#toc3" REL=contents>
-</HEAD>
-<BODY>
-<A HREF="bftpddoc-pl-4.html">Next</A>
-<A HREF="bftpddoc-pl-2.html">Previous</A>
-<A HREF="bftpddoc-pl.html#toc3">Contents</A>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD><TITLE>Dokumentacja bftpd: Konfiguracja</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+<META content="MSHTML 6.00.2900.2963" name=GENERATOR><LINK 
+href="bftpddoc-pl-4.html" rel=next><LINK href="bftpddoc-pl-2.html" 
+rel=previous><LINK href="bftpddoc-pl.html#toc3" rel=contents></HEAD>
+<BODY><A href="bftpddoc-pl-4.html">Dalej</A> 
+<A href="bftpddoc-pl-2.html">Wstecz</A> <A 
+href="bftpddoc-pl.html#toc3">Zawartość</A> 
 <HR>
-<H2><A NAME="s3">3.</A> <A HREF="bftpddoc-pl.html#toc3">Konfiguracja</A></H2>
 
-<H2><A NAME="ss3.1">3.1 Zarzadzanie uzytkownikami</A>
-</H2>
-
-<P>Mozesz obslugiwac konta uzytkownikow w bardzo prosty sposob, edytujac plik /etc/passwd oraz, jesli Twoj system to obsluguje, /etc/shadow. Kazdy uzytkownik wystepujacy w /etc/passwd moze sie polaczyc z serwerem jesli poda haslo i spelni wymagania konfiguracji serwera bftpd. Mozna rowniez zalozyc konto anonymous, ustawiajac zmienna ANONYMOUS_USER na yes. bftpd obsluguje rowniez PAM.</P>
-<H2><A NAME="ss3.2">3.2 Plik konfiguracji (/etc/bftp.conf)</A>
-</H2>
-
+<H2><A name=s3>3.</A> <A 
+href="bftpddoc-pl.html#toc3">Konfiguracja</A></H2>
+<H2><A name=ss3.1>3.1 Zarządzanie użytkownikami</A> </H2>
+<P>Możesz obsługiwac konta użytkownikow w bardzo prosty sposób, edytując plik 
+/etc/passwd oraz, jeśli Twój system to obsługuje, /etc/shadow. Każdy użytkownik 
+występujący w /etc/passwd może się połączyć z serwerem jeśli poda hasło i spełni 
+wymagania konfiguracji serwera bftpd. Można również założyć konto anonymous, 
+ustawiając zmienną ANONYMOUS_USER na yes. bftpd obsługuje również PAM.</P>
+<H2><A name=ss3.2>3.2 Plik konfiguracji (/etc/bftp.conf)</A> </H2>
 <H3>Sekcja globalna</H3>
-
-<P>W tej sekcji mozesz nadawac wartosci opcjom konfiguracji. Skladnia jest nastepujaca:
-<BLOCKQUOTE><CODE>
-<PRE>
-global {
-  nazwa1=wartosc1
-  nazwa2=wartosc2
+<P>W tej sekcji możesz nadawać wartości opcjom konfiguracji. Składnia jest 
+następująca: 
+<BLOCKQUOTE><CODE><PRE>global {
+  nazwa1=wartość1
+  nazwa2=wartość2
 }
-</PRE>
-</CODE></BLOCKQUOTE>
-</P>
-<H3>Sekcja uzytkownikow</H3>
-
-<P>W konfiguracji wystepuje rowniez sekcja uzytkownikow, w ktorej mozesz nadpisywac wartosci globalne dla poszczegolnych uzytkownikow. Przyklad: 
-<BLOCKQUOTE><CODE>
-<PRE>
-global {
-  nazwa1=wartosc1
-  nazwa2=wartosc2
+</PRE></CODE></BLOCKQUOTE>
+<P></P>
+<H3>Sekcja użytkowników</H3>
+<P>W konfiguracji występuje również sekcja użytkowników, w której możesz 
+nadpisywać wartości globalne dla poszczególnych użytkownikow. Przykład: 
+<BLOCKQUOTE><CODE><PRE>global {
+  nazwa1=wartość1
+  nazwa2=wartość2
 }
 user foo {
-  nazwa1=wartosc3
+  nazwa1=wartość3
 }
-</PRE>
-</CODE></BLOCKQUOTE>
-
-Jesli uzytkownik foo sie zaloguje, to nazwa pierwsza bedzie miala wartosc3. Jesli zalogowany jest inny uzytkownik, nazwa1 ma warosc1, natomiast nazwa2 ma zawsze wartosc2.</P>
-
-<H3>Sekcja grup uzytkownikow</H3>
-
-<P>Mozesz takze definiowac konfiguracje grupom uzytkownikow - podobnie jak dla jednego uzytkownika, tylko mozesz przydzielic ich kilku pod postacia grupy. Mozesz rowniez umieszczac w konfiguracji grupy systemowe dodajac do ich nazwy znak @. Przyklad:
-<BLOCKQUOTE><CODE>
-<PRE>
-group foo,bar,@baz {
-  nazwa1=wartosc1
+</PRE></CODE></BLOCKQUOTE>Jeśli użytkownik foo się zaloguje, to nazwa pierwsza 
+będzie miała wartość3. Jeśli zalogowany jest inny użytkownik, nazwa1 ma warość1, 
+natomiast nazwa2 ma zawsze wartość2.
+<P></P>
+<H3>Sekcja grup użytkowników</H3>
+<P>Możesz także definiować konfigurację grupom użytkownikow - podobnie jak dla 
+jednego użytkownika, tylko możesz przydzielić ich kilku pod postacią grupy. 
+Możesz rownież umieszczać w konfiguracji grupy systemowe dodając do ich nazwy 
+znak @. Przykład: 
+<BLOCKQUOTE><CODE><PRE>group foo,bar,@baz {
+  nazwa1=wartość1
 }
-</PRE>
-</CODE></BLOCKQUOTE>
-
-Te opcje oddzialuja na uzytkownikow foo i bar oraz na kazdego z grupy systemowej baz.</P>
-<H3>Sekcja katalogow</H3>
-
-<P>Mozesz ustalac opcje, ktore beda wazne tylko dla uzytkownikow znajdujacych sie w danym katalogu, badz jego podkatalogach. Wez pod uwage, ze musisz umiescic te struktury w opcjach globalnych, uzytkownikow oraz grup. W ten sposob mozesz takze nadpisywac specyficzne ustawienia katalogu dla danych uzytkownikow. Przykladowo:
-<BLOCKQUOTE><CODE>
-<PRE>
-global {
-  nazwa=wartosc1
+</PRE></CODE></BLOCKQUOTE>Te opcje oddziałuja na użytkowników foo i bar oraz na 
+każdego z grupy systemowej baz.
+<P></P>
+<H3>Sekcja katalogów</H3>
+<P>Mozesz ustalać opcje, które będą ważne tylko dla użytkowników znajdujących 
+się w danym katalogu, bądź w jego podkatalogach. Weź pod uwagę, że musisz umieścić 
+te struktury w opcjach globalnych, użytkowników oraz grup. W ten sposób możesz 
+także nadpisywać specyficzne ustawienia katalogu dla danych użytkowników. 
+Przykładowo: 
+<BLOCKQUOTE><CODE><PRE>global {
+  nazwa=wartość1
   directory /foo {
-    nazwa1=wartosc2
+    nazwa1=wartość2
   }
 }
 user bar {
   directory /foo {
-    nazwa1=wartosc3
+    nazwa1=wartość3
   }
 }
-</PRE>
-</CODE></BLOCKQUOTE>
-
-Tutaj, nazwa1 bedzie miala warosc3 jesli uzytkownik bar bedzie w katalogu /foo. Natomiast wartosc2 przybierze jesli inny uzytkownik znajdzie sie w katalogu /foo. Kazdy inny przypadek spowoduje nadanie nazwie1 wartosci1.</P>
-<P>Wyjasnienie tych opcji znajdziesz w pliku konfiguracyjnym bftpd (jesli nie upgradowales bftpd, plik zostal juz skopiowany do /etc). Zmodyfikuj oczywiscie plik do twoich potrzeb. Jednak domyslna konfiguracja tez powinna byc w porzadku.</P>
+</PRE></CODE></BLOCKQUOTE>Tutaj, nazwa1 będzie miała wartość3 jeśli użytkownik 
+bar będzie w katalogu /foo. Natomiast wartość2 przybierze jeśli inny użytkownik 
+znajdzie sie w katalogu /foo. Każdy inny przypadek spowoduje nadanie nazwie1 
+wartości1.
+<P></P>
+<P>Wyjaśnienie tych opcji znajdziesz w pliku konfiguracyjnym bftpd (jeśli nie 
+upgradowales bftpd, plik został juz skopiowany do /etc). Zmodyfikuj oczywiście 
+plik do twoich potrzeb. Jednak domyślna konfiguracja też powinna być w 
+porządku.</P>
 <HR>
-<A HREF="bftpddoc-pl-4.html">Next</A>
-<A HREF="bftpddoc-pl-2.html">Previous</A>
-<A HREF="bftpddoc-pl.html#toc3">Contents</A>
-</BODY>
-</HTML>
+<A href="bftpddoc-pl-4.html">Dalej</A> <A 
+href="bftpddoc-pl-2.html">Wstecz</A> <A 
+href="bftpddoc-pl.html#toc3">Zawartość</A> 
+</BODY></HTML>

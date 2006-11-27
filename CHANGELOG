@@ -1,6 +1,151 @@
 This file contains all major changes made during the development of bftpd.
 The uppermost change is the newest one.
 
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.5
+	- Added Polish documentation.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.4.1
+	- Added ability to use a plain text file
+	  for authentication. See config file option
+	  FILE_AUTH for details.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.4
+	- Fixed default configuration.
+	- Fixed compile warnings for vanilla config.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.3.2
+	- Fixed Makefile to erase config.cache file during
+	  "make clean"
+	- Added ability to uncompress files on the fly
+	  during downloads. Any file with the extension
+	  ".gz" can be decompressed during transfer to
+	  the client with the use of the GZ_DOWNLOAD
+	  in the config file. This option requires bftpd
+	  be configured (pre-compile time) with the flag
+	  --enable-libz.
+
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.3.1
+	- Changed ratio values to unsigned long
+	  variables to support large files.
+	- Editted Makefile to allow bftpd to handle large
+	  files (2GB+).
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.2.2
+	- Added ability to upload files and
+	  compress them into .gz files on the fly.
+	  See bftpd.conf file for the option.
+	  This option requires --enable-libz be
+	  used when running the configure script.
+
+	- Cleaned up code to avoid compiler warnings
+	  from gcc 4.0.2.
+	  Files changed: main.c commands.c
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.2.1
+	- When the config file is re-read, global
+          are changed only.   
+          Files changes: options.c options.h
+
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.2
+	- Made re-reable options be able to hold larger
+	  values. Up to 256 bytes/characters long.
+	- Replaced old rpm spec file with one from
+	  Joe, which will be used from now on for
+	  rpm builds.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.1.3
+	- When a child/client dies, the
+	  parent process will now attempt to
+	  remove the client's log entry
+	  from the bftpdutmp file. This
+	  should prevent stale entries.
+	- Changed some default values to
+          constants in options.h
+	- Fixed typo(s) in bftpd.conf
+	- Set delete/over-write for global
+	  users to be disabled by default
+          in bftpd.conf.
+        - Added the XFER_DELAY option to
+          the bftpd.conf file. This allows
+          the admin to set a time delay
+          between data transfer bursts.
+          This aid in bandwidth throttling.
+          Please see bftpd.conf for more
+          details on this feature.
+	- Added more re-read options
+          when catching signal SIGHUP.
+          The re-readable options are now:
+          HELLO_STRING, QUIT_MSG, XFERBUFSIZE,
+          DATA_TIMEOUT, CONTROL_TIMEOUT,
+          USERLIMIT_GLOBAL, USERLIMIT_SINGLEUSER,
+          USERLIMIT_HOST, DENY_LOGIN and XFER_DELAY.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.1.2
+	- Program now catches signal SIGHUP.
+	- When bftpd catches the SIGHUP (hang up)
+          it re-reads the config file. It looks
+          for some config values, but not all.
+          At this time, the values which are
+          re-read are:
+          HELLO_STRING, QUIT_MSG and XFERBUFSIZE
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.1.1
+	- Added rpm spec file to redhat directory.
+	- Changed numberic string length (512) to a defined
+          string length (MAXCMD). Makes code more
+          compatible with main.c and uses less stack
+          memory. File changed: commands.c
+	- When receiving files, the transfer buffer
+          (XFER_BUFSIZE) is divided by the number of 
+          connected clients. This should prevent bandwidth
+          being sucked back by multiple connections.
+	- Minor fixes, checking for malloc errors,
+          freeing memory and closing sockets.
+          File changed: commands.c
+        - When sending files, the transfer buffer
+          (XFER_BUFSIZE) is divided by the number
+          of connected clients. This should prevent
+          bandwidth being taken over by multiple connections.
+	- Changed Makefile so bftpd.8 gets installed as
+	  a manual page in the proper location.
+          Also updated rpm spec file to include man page.
+
+
+Jesse Smith <slicer69@hotmail.com> -> 1.1.0
+	- Changed some bftpdutmp_log(0) lines to
+	calls to bftpdutmp_end(). This should be safer.	
+	- Made sure that clients cannot write or append
+	to files if the "delete" command is disabled. I
+	think if they cannot delete the file they shouldn't
+	be allowed to truncate it to zero bytes either.
+	- Added reason for login failure to log file.
+	- Removed logging of getting user count from
+	temp file. Just seems to be taking up space.
+
+Jesse Smith <slicer69@hotmail.com> -> 1.0.24-2
+	- Added ability to block multiple connections from the
+	  same IP address. This will keep download managers and
+	  Internet Explorer from taking up multiple connections.
+          See the new option USERLIMIT_HOST in bftpd.conf.
+	- Made sure that bftpd logs out stale control connections
+	  via added calls to bftpdutmp_log(0).
+	- Added alarm() calls before trying to read from
+	  the control socket. We shouldn't assume we are going to
+	  get anything.
+
+Jesse Smith <slicer69@hotmail.com> -> 1.0.24-1
+	- Fixed bug with NLIST command. The bftpd server should not be
+	  sending leading path in front of filename when using NLIST.
+	  File(s) affected: dirlist.c
+	- Added the MGET command. Allows client to receive multiple files
+	  with one command.
+	  File(s) affected: commands.c
+	- Added the MPUT command. Allows client to send multiple files
+	  to the server with one command.
+	  File(s) affected: commands.c
+
 Max-Wilhelm Bruker <brukie@gmx.net> -> 1.0.24
 	- The PATH_BFTPDUTMP configuration option was added (idea by Szabo Peter
 	  <pts@math.bme.hu>).

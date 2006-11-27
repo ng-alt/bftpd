@@ -7,6 +7,17 @@
 #include <pwd.h>
 #include <grp.h>
 
+
+/*
+Define some default options
+*/
+
+#define CONTROL_TIMEOUT 300
+#define DATA_TIMEOUT 300
+#define XFER_BUFSIZE 4096
+#define XFER_DELAY 0
+#define DEFAULT_PORT 21
+
 struct bftpd_option {
   char *name, *value;
   struct bftpd_option *next;
@@ -50,6 +61,8 @@ extern struct user *config_users;
 void expand_groups();
 void config_init();
 char *config_getoption(char *name);
+char *config_getoption_reread( char *find_me );
 void config_end();
+void Reread_Config_File();
 
 #endif

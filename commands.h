@@ -34,7 +34,7 @@ extern int pasvsock;
 extern char *philename;
 extern int offset;
 extern int ratio_send, ratio_recv;
-extern int bytes_stored, bytes_recvd;
+extern unsigned long bytes_stored, bytes_recvd;
 extern int xfer_bufsize;
 
 void control_printf(char success, char *format, ...);
@@ -49,6 +49,7 @@ void command_pwd(char *);
 void command_type(char *);
 void command_port(char *);
 void command_stor(char *);
+void command_mget(char *);
 void command_retr(char *);
 void command_list(char *);
 void command_syst(char *);
@@ -74,5 +75,8 @@ struct command {
   char state_needed;
   char showinfeat;
 };
+
+/* File the size of the transfer buffer, divided by number of connetions */
+int get_buffer_size(int num_connections);
 
 #endif

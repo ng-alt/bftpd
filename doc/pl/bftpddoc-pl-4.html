@@ -1,77 +1,77 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
- <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.8.1">
- <TITLE>dokumentacja bftpd jezyk polski]: FAQ</TITLE>
- <LINK HREF="bftpddoc-pl-5.html" REL=next>
- <LINK HREF="bftpddoc-pl-3.html" REL=previous>
- <LINK HREF="bftpddoc-pl.html#toc4" REL=contents>
-</HEAD>
-<BODY>
-<A HREF="bftpddoc-pl-5.html">Next</A>
-<A HREF="bftpddoc-pl-3.html">Previous</A>
-<A HREF="bftpddoc-pl.html#toc4">Contents</A>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD><TITLE>Dokumentacja bftpd: FAQ</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+<LINK 
+href="bftpddoc-pl-5.html" rel=next><LINK href="bftpddoc-pl-3.html" 
+rel=previous><LINK href="bftpddoc-pl.html#toc4" rel=contents></HEAD>
+<BODY><A href="bftpddoc-pl-5.html">Dalej</A> 
+<A href="bftpddoc-pl-3.html">Wstecz</A> <A 
+href="bftpddoc-pl.html#toc4">Zawartość</A> 
 <HR>
-<H2><A NAME="s4">4.</A> <A HREF="bftpddoc-pl.html#toc4">FAQ</A></H2>
 
-<H2><A NAME="ss4.1">4.1 Problemy z kompilacja</A>
-</H2>
-
-<H3>Nie moge skompilowac bftpd</H3>
-
-<P>Daj mi znac. Powiedz na jakim systemie i architekturze go kompilowales, przeslij tez wyjscie calego procesu kompilacji (configure i make). Nie dostaje ton poczty, wiec postaram sie rozwiazac Twoj problem. Jesli natomiast nie odpowiem, prawie zapomnialem o Twoim mailu, wiec go ponow :)</P>
-<H3>Wystepuja dziwne ostrzezenia</H3>
-
-<P>To jest calkiem mozliwe na platformach, na ktorych nie testowalem bftpd. Nawet jesli bftpd skompiluje sie prawidlowo i dziala bez zarzutu, prosze, przeslij mi informacje na ten temat, gdyz kompilator moze powodowac niezauwazalne na pierwszy rzut oka problemy.</P>
-<H3>Make mowi ze nie moge uzywac wtmp</H3>
-
-<P>Prawdopodobnie uzywasz Solarisa. Poniewaz nie mam dostepu do takiej maszyny, nigdy nie moglem sprawdzic jej wtmp. Jesli otrzymujesz taki komunikat i nie wiesz czym jest w ogole wtmp, nie martw sie o to. Jesli jest inaczej, pomoz mi rozwiazac problem.</P>
-<H2><A NAME="ss4.2">4.2 Problemy przy uruchamianiu</A>
-</H2>
-
-<H3>Otrzymuje komunikat &quot;Could not get peer IP address.&quot;</H3>
-
-<P>Uruchomiles bftpd przez konsole. Jesli chcialbys z niego korzystac w trybie standalone, musisz dodac opcje &quot;-d&quot;. Jesli jednak ustawiles go jako usluge inetd, sprawdz to przez:
-<BLOCKQUOTE><CODE>
-<PRE>
-hostname:~$ ftp localhost
-</PRE>
-</CODE></BLOCKQUOTE>
-</P>
-<H3>Dostaje blad &quot;Bind failed: Address already in use.&quot;</H3>
-
-<P>Ten blad oznacza, ze inny proces juz wykorzystuje port, na ktorym chcesz uruchomic serwer bftpd. Mozesz zmienic numer portu bftpd w pliku konfiguracyjnym (bftpd.conf) - opcja PORT w strukturze globalnej. Domyslnie ustawiony jest na 21. Jesli nie zmieniales tego portu, prawdopodobnie zapomniales wylaczyc swoj stary serwer FTP. Zajrzyj do /etc/inetd.conf oraz do wydruku polecenia  &quot;ps aux | grep ftp&quot;.</P>
-<H2><A NAME="ss4.3">4.3 Problemy podczas sesji FTP</A>
-</H2>
-
-<H3>Mam blad podobny do &quot;500 Unknown command: 'foo'&quot;</H3>
-
-<P>Twoj program wyslal komende, ktorej bftpd nie rozpoznal. To jest moj blad, chyba ze rzeczywiscie wyslales nieistniejace polecenie. Sprawdz czy sie nie pomyliles przy jego wpisywaniu i wyslij mi raport, jesli masz pewnosc, ze komenda byla dobra.</P>
-<H3>Sesja sie konczy bledem 421</H3>
-
-<P>Jesli porobujesz sie zalogowac ze zlym haslem, bftpd zerwie polaczenie. Jesli sie zalogowales zanim blad sie pojawil, badz blad wystapil przed zalogowaniem, to na pewno jest moj blad. Powiedz mi o tym.</P>
-<H2><A NAME="ss4.4">4.4 Rozne</A>
-</H2>
-
-<H3>Jak dziala kompresja w locie?</H3>
-
-<P>Zalozmy, ze masz katalog nazywajacy sie foo. Nawet jesli nie ma pliku o nazwie foo.tar.gz, mozesz jednak uzyc polecenia RETR i bedzie on zaweral zawartosc katalogu foo, tar-gzipowana. Mozesz rowniez sciagac pliki:
+<H2><A name=s4>4.</A> <A 
+href="bftpddoc-pl.html#toc4">FAQ</A></H2>
+<H2><A name=ss4.1>4.1 Problemy z kompilacją</A> </H2>
+<H3>Nie mogę skompilować bftpd</H3>
+<P>Daj mi znać. Powiedz na jakim systemie i architekturze go kompilowałeś, 
+prześlij też wyjście całego procesu kompilacji (configure i make). Nie dostaję póki co  
+ton poczty, więc postaram się rozwiązać Twój problem. Jeśli natomiast nie 
+odpowiem, pewnie zapomniałem o Twoim mailu, więc go ponów :)</P>
+<H3>Występują dziwne ostrzeżenia</H3>
+<P>To jest całkiem możliwe na platformach, na których nie testowałem bftpd. 
+Nawet jeśli bftpd skompiluje się prawidłowo i działa bez zarzutu, proszę, 
+prześlij mi informacje na ten temat, gdyż kompilator moze powodować 
+niezauważalne na pierwszy rzut oka problemy.</P>
+<H3>Make mówi, że nie mogę używac wtmp</H3>
+<P>Prawdopodobnie używasz Solarisa. Ponieważ nie mam dostępu do takiej maszyny, 
+nigdy nie mogłem sprawdzić jej wtmp. Jeśli otrzymujesz taki komunikat i nie 
+wiesz czym jest w ogóle wtmp, nie martw się o to. Jeśli jest inaczej, pomóż mi 
+rozwiązać problem.</P>
+<H2><A name=ss4.2>4.2 Problemy przy uruchamianiu</A> </H2>
+<H3>Otrzymuję komunikat "Could not get peer IP address."</H3>
+<P>Uruchomiłes bftpd przez konsolę. Jeśli chciałbyś z niego korzystać w trybie 
+standalone, musisz dodac opcje "-d". Jeśli jednak ustawiłes go jako usługę 
+inetd, sprawdź to przez: 
+<BLOCKQUOTE><CODE><PRE>hostname:~$ ftp localhost
+</PRE></CODE></BLOCKQUOTE>
+<P></P>
+<H3>Dostaję błąd "Bind failed: Address already in use."</H3>
+<P>Ten błąd oznacza, że inny proces już wykorzystuje port, na którym chcesz 
+uruchomić serwer bftpd. Możesz zmienić numer portu bftpd w pliku konfiguracyjnym 
+(bftpd.conf) - opcja PORT w strukturze globalnej. Domyślnie ustawiony jest na 
+21. Jeśli nie zmieniałeś tego portu, prawdopodobnie zapomniałeś wyłączyc swój 
+stary serwer FTP. Zajrzyj do /etc/inetd.conf oraz do wydruku polecenia "ps aux | 
+grep ftp".</P>
+<H2><A name=ss4.3>4.3 Problemy podczas sesji FTP</A> </H2>
+<H3>Mam błąd podobny do "500 Unknown command: 'foo'"</H3>
+<P>Twój program wysłał komendę, której bftpd nie rozpoznał. To jest mój błąd, 
+chyba ze rzeczywiscie wysłałes nieistniejące polecenie. Sprawdź czy się nie 
+pomyliłeś przy jego wpisywaniu i wyślij mi raport, jeśli masz pewność, że 
+komenda byla dobra.</P>
+<H3>Sesja konczy się błędem 421</H3>
+<P>Jeśli próbujesz się zalogować ze złym hasłem, bftpd zerwie połączenie. Jeśli 
+się zalogowaleś zanim błąd się pojawił, bądź błąd wystapił przed zalogowaniem, 
+to na pewno jest moj błąd. Powiedz mi o tym.</P>
+<H2><A name=ss4.4>4.4 Różne</A> </H2>
+<H3>Jak działa kompresja w locie?</H3>
+<P>Załóżmy, ze masz katalog nazywający sie foo. Nawet jeśli nie ma pliku o 
+nazwie foo.tar.gz, możesz jednak użyc polecenia RETR i bedzie on zawerał 
+zawartość katalogu foo, tar-gzipowaną. Możesz rownież ściagać pliki: 
 <UL>
-<LI>dirname.tar</LI>
-<LI>filename.gz</LI>
-</UL>
-
-Jesli chcesz korzystac z tej opcji, wkompiluj ja najpierw (patrz: instalacja)</P>
-<H3>Moje opcje dla polaczen anonymous nie dzialaja</H3>
-
-<P>Jesli w strukturze jest opcja ALIAS=...., nie musisz uzupelniac jej opcjami. Zamiast tego, zrob to w sekcji, do ktorej sie alias odnosi.</P>
+  <LI>dirname.tar 
+  <LI>filename.gz </LI></UL>Jeśli chcesz korzystać z tej opcji, wkompiluj ja 
+najpierw (patrz sekcja: instalacja)
+<P></P>
+<H3>Moje opcje dla połączeć anonymous nie działają</H3>
+<P>Jeśli w strukturze jest opcja ALIAS=...., nie musisz uzupelniać jej opcjami. 
+Zamiast tego, zrób to w sekcji, do której sie alias odnosi.</P>
 <H3>Dlaczego dokumentacja jest tak uboga?</H3>
-
-<P>Odpowiedz jest prosta, nikt niczego nie napisal :)<BR>
-Nigdy nie wiem co napisac, wiec jesli masz jakas wizje wzbogacenia dokumentacji, prosze, poinformuj mnie o tym. To samo dotyczy tlumaczen na inne jezyki. Jesli chcialbyc cos stworzyc, zrob to, jednak zwracaj uwage na bledy stylistyczne i literowki.</P>
+<P>Odpowiedź jest prosta, nikt niczego nie napisał :)<BR>Nigdy nie wiem co 
+napisać, więc jeśli masz jakąś wizję wzbogacenia dokumentacji, proszę, 
+poinformuj mnie o tym. To samo dotyczy tłumaczen na inne języki. Jeśli chciałbyś 
+coś stworzyć, zrób to, jednak zwracaj uwagę styl i literówki.</P>
 <HR>
-<A HREF="bftpddoc-pl-5.html">Next</A>
-<A HREF="bftpddoc-pl-3.html">Previous</A>
-<A HREF="bftpddoc-pl.html#toc4">Contents</A>
-</BODY>
-</HTML>
+<A href="bftpddoc-pl-5.html">Dalej</A> <A 
+href="bftpddoc-pl-3.html">Wstecz</A> <A 
+href="bftpddoc-pl.html#toc4">Zawartość</A> 
+</BODY></HTML>

@@ -186,10 +186,29 @@ int bftpd_login(char *password)
 	char str[256];
 	char *foo;
 	int maxusers;
-	if (!getpwnam(user)) {
-        control_printf(SL_FAILURE, "421 Login incorrect.");
+        char *file_auth;   /* if used, points to file used to auth users */
+        char *home_directory = NULL;   /* retrieved from auth_file */
+
+        file_auth = config_getoption("FILE_AUTH");
+
+        if (! file_auth[0] )    /* not using auth file */
+        {
+	   if (!getpwnam(user)) {
+                control_printf(SL_FAILURE, "421 Login incorrect.");
 		exit(0);
-    }
+           }
+        }
+        /* we are using auth_file */
+        else
+        {
+           home_directory = check_file_password(file_auth, user, password);
+           if (! home_directory)
+           {
+               control_printf(SL_FAILURE, "421 Authentication incorrect.");
+               exit(0);
+           }
+        }
+
 	if (strncasecmp(foo = config_getoption("DENY_LOGIN"), "no", 2)) {
 		if (foo[0] != '\0') {
 			if (strncasecmp(foo, "yes", 3))
@@ -203,23 +222,51 @@ int bftpd_login(char *password)
 	maxusers = strtoul(config_getoption("USERLIMIT_GLOBAL"), NULL, 10);
 	if ((maxusers) && (maxusers == bftpdutmp_usercount("*"))) {
 		control_printf(SL_FAILURE, "421 There are already %i users logged in.", maxusers);
+                bftpd_log("Login as user '%s' failed. Too many users on server.\n", user);
 		exit(0);
 	}
 	maxusers = strtoul(config_getoption("USERLIMIT_SINGLEUSER"), NULL, 10);
 	if ((maxusers) && (maxusers == bftpdutmp_usercount(user))) {
 		control_printf(SL_FAILURE, "421 User %s is already logged in %i times.", user, maxusers);
+                bftpd_log("Login as user '%s' failed. Already logged in %d times.", maxusers);
 		exit(0);
 	}
-	if(checkuser() || checkshell()) {
+
+        /* Check to see if we should block mulitple logins from the same machine.
+           -- Jesse <slicer69@hotmail.com>
+        */
+        maxusers = strtoul( config_getoption("USERLIMIT_HOST"), NULL, 10);
+        if ( (maxusers) && (maxusers == bftpdutmp_dup_ip_count(remotehostname) ) )
+        {
+            control_printf(SL_FAILURE, "421 Too many connections from your IP address.");
+            bftpd_log("Login as user '%s' failed. Already %d connections from %s.\n", user, maxusers, remotehostname);
+            exit(0);
+        }
+       
+        /* disbale these checks when logging in via auth file */
+        if (! file_auth[0] ) 
+        {
+	    if(checkuser() || checkshell()) {
 		control_printf(SL_FAILURE, "421 Login incorrect.");
 		exit(0);
-	}
-	if (checkpass(password))
+	    }
+        }
+
+        /* do not do this check we we are using auth_file */
+        if (! file_auth[0] )
+        {
+	    if (checkpass(password))
 		return 1;
+        }
+
 	if (strcasecmp((char *) config_getoption("RATIO"), "none")) {
 		sscanf((char *) config_getoption("RATIO"), "%i/%i",
 			   &ratio_send, &ratio_recv);
 	}
+
+
+        if (! file_auth[0])
+        {
 	strcpy(str, config_getoption("ROOTDIR"));
 	if (!str[0])
 		strcpy(str, "%h");
@@ -257,21 +304,36 @@ int bftpd_login(char *password)
 			chdir("/");
 		}
 	}
-    new_umask();
+
+        }   /* end of if we are using regular authentication methods */
+
+        else     /* we are using file authentication */
+        {
+            chroot(home_directory);
+            chdir("/");
+        }
+        new_umask();
 	print_file(230, config_getoption("MOTD_USER"));
 	control_printf(SL_SUCCESS, "230 User logged in.");
 #ifdef HAVE_UTMP_H
 	bftpd_logwtmp(1);
 #endif
-    bftpdutmp_log(1);
+        bftpdutmp_log(1);
 	bftpd_log("Successfully logged in as user '%s'.\n", user);
-    if (config_getoption("AUTO_CHDIR")[0])
-        chdir(config_getoption("AUTO_CHDIR"));
+        if (config_getoption("AUTO_CHDIR")[0])
+            chdir(config_getoption("AUTO_CHDIR"));
+
 	state = STATE_AUTHENTICATED;
 	bftpd_cwd_init();
+
+        /* a little clean up before we go*/
+        if (home_directory)
+            free(home_directory);
 	return 0;
 }
 
+
+/* Return 1 on failure and 0 on success. */
 int checkpass(char *password)
 {
     if (!getpwnam(user))
@@ -407,5 +469,56 @@ int checkshell()
 #   warning "Your system doesn't have getusershell(). You can not"
 #   warning "use /etc/shells authentication with bftpd."
 #endif
+}
+
+
+
+
+/*
+This function searches through a text file for a matching
+username. If a match is found, the password in the
+text file is compared to the password passed in to
+the function. If the password matches, the function
+returns the third field (home directory). On failure,
+it returns NULL.
+-- Jesse
+*/
+char *check_file_password(char *my_filename, char *my_username, char *my_password)
+{
+   FILE *my_file;
+   int found_user = 0;
+   char user[32], password[32], group[32], home_dir[32];
+   char *my_home_dir = NULL;
+   int return_value;
+
+   my_file = fopen(my_filename, "r");
+   if (! my_file)
+      return NULL;
+
+   return_value = fscanf(my_file, "%s %s %s %s", user, password, group, home_dir);
+   if (! strcmp(user, my_username) )
+      found_user = 1;
+
+   while ( (! found_user) && ( return_value != EOF) )
+   {
+       return_value = fscanf(my_file, "%s %s %s %s", user, password, group, home_dir);
+       if (! strcmp(user, my_username) )
+          found_user = 1;
+   }
+
+   fclose(my_file);
+   if (found_user)
+   {
+      /* check password */
+      if ( strcmp(password, my_password) )
+         return NULL;
+
+      my_home_dir = calloc( strlen(home_dir), sizeof(char) );
+      if (! my_home_dir)
+          return NULL;
+      strcpy(my_home_dir, home_dir);
+   }
+  
+   return my_home_dir;
 }
 

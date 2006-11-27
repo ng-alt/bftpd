@@ -56,7 +56,7 @@ void appendpath(char *result, char *tmp)
 
 char *bftpd_cwd_mappath(char *path)
 {
-	char *result = malloc(strlen(path) + strlen(cwd) + 10);
+	char *result = malloc(strlen(path) + strlen(cwd) + 16);
 	char *path2 = strdup(path);
 	char *tmp;
 	if (path[0] == '/')

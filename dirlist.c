@@ -152,6 +152,8 @@ void dirlist_one_file(char *name, FILE *client, char verbose)
 {
     struct stat statbuf;
     struct hidegroup *tmp = hidegroups;
+    char *filename_index;      /* place where filename starts in path */
+
     if (!stat(name, (struct stat *) &statbuf)) {
         if (tmp)
             do {
@@ -159,10 +161,18 @@ void dirlist_one_file(char *name, FILE *client, char verbose)
                     return;
             } while ((tmp = tmp->next));
     }
+
+    /* find start of filename after path */
+    filename_index = strrchr(name, '/');
+    if (filename_index)
+       filename_index++;   /* goto first character after '/' */
+    else
+       filename_index = name;    
+
     if (verbose)
         bftpd_stat(name, client);
     else
-        fprintf(client, "%s\r\n", name);
+        fprintf(client, "%s\r\n", filename_index);
 }
 
 void dirlist(char *name, FILE * client, char verbose)

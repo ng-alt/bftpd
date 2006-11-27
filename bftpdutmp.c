@@ -20,6 +20,7 @@ void bftpdutmp_init()
 	if ((!strcasecmp(filename, "none")) || (!filename[0]))
 		return;
     /* First we have to create the file if it doesn't exist */
+
     bftpdutmp = fopen(filename, "a");
     if (bftpdutmp)
         fclose(bftpdutmp);
@@ -63,8 +64,11 @@ void bftpdutmp_log(char type)
             i++;
         }
         bftpdutmp_offset = i * sizeof(tmp);
-    } else
+    }
+ 
+    else
         ut.bu_type = 0;
+
     time(&(ut.bu_time));
     fseek(bftpdutmp, bftpdutmp_offset, SEEK_SET);
     fwrite((void *) &ut, sizeof(ut), 1, bftpdutmp);
@@ -91,10 +95,67 @@ int bftpdutmp_usercount(char *username)
 	if (!bftpdutmp)
 		return 0;
     rewind(bftpdutmp);
-    while (fread((void *) &tmp, sizeof(tmp), 1, bftpdutmp)) {
-		bftpd_log("bu_name=%s; username=%s, bu_type=%i\n", tmp.bu_name, username, tmp.bu_type);
-        if (tmp.bu_type && (!strcmp(tmp.bu_name, username) || !strcmp(username, "*")))
+    while ( fread((void *) &tmp, sizeof(tmp), 1, bftpdutmp) ) {
+		/*
+                 Took this out. It seems to just be taking up log space. -- Jesse 
+                 bftpd_log("bu_name=%s; username=%s, bu_type=%i\n", tmp.bu_name, username, tmp.bu_type);
+                */ 
+        if (tmp.bu_type && ( !strcmp(tmp.bu_name, username) || !strcmp(username, "*")))
 			count++;
     }
     return count;
 }
+
+int bftpdutmp_dup_ip_count(char *ip_address)
+{
+   struct bftpdutmp tmp;
+   int count = 0;
+
+   if (! bftpdutmp)
+      return 0;
+
+   rewind(bftpdutmp);
+   while ( fread( (void *) &tmp, sizeof(tmp), 1, bftpdutmp) )
+   {
+      if (tmp.bu_type && (! strcmp(tmp.bu_host, ip_address) ) )
+         count++; 
+   }
+
+   return count;
+}
+
+
+
+/*
+This function removes a log entry of
+a dead client. This is called
+when the bftpd parent catches a
+signal indicating the child/client died.
+This makes it look like the child
+logged out properly.
+-- Jesse
+*/
+void bftpdutmp_remove_pid(int pid)
+{
+    struct bftpdutmp current;
+    int index = 0;
+
+    if (! bftpdutmp)
+       return;
+
+    rewind(bftpdutmp);
+    /* search for a matching pid */
+    while ( fread( (void *) &current, sizeof(current), 1, bftpdutmp) )
+    {
+       /* over-write the pid */
+       if ( current.bu_pid == pid )
+       {
+           fseek(bftpdutmp, index * sizeof(current), SEEK_SET);
+           memset(&current, 0, sizeof(current));
+           fwrite( (void *) &current, sizeof(current), 1, bftpdutmp);
+       }
+       index++;
+    }
+}
+
+

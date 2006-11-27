@@ -1,38 +1,36 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
-<HTML>
-<HEAD>
- <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.8.1">
- <TITLE>dokumentacja bftpd jezyk polski]: Wprowadzenie  </TITLE>
- <LINK HREF="bftpddoc-pl-2.html" REL=next>
-
- <LINK HREF="bftpddoc-pl.html#toc1" REL=contents>
-</HEAD>
-<BODY>
-<A HREF="bftpddoc-pl-2.html">Next</A>
-Previous
-<A HREF="bftpddoc-pl.html#toc1">Contents</A>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML><HEAD><TITLE>Dokumentacja bftpd: Wprowadzenie</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
+<LINK 
+href="bftpddoc-pl-2.html" rel=next><LINK href="bftpddoc-pl.html#toc1" 
+rel=contents></HEAD>
+<BODY><A href="bftpddoc-pl-2.html">Dalej</A> 
+Wstecz <A 
+href="bftpddoc-pl.html#toc1">Zawartość</A> 
 <HR>
-<H2><A NAME="s1">1.</A> <A HREF="bftpddoc-pl.html#toc1">Wprowadzenie  </A></H2>
 
-<P>bfptd jest serwerem FTP dla Linuxa, BSD/OS, FreeBSD, Solarisa, DG-UXa oraz Tru64 (nie wiem czy dziala on na innych systemach, jesli probowales, napisz do mnie). Uruchamiany moze byc poprzez inetd badz w trybie standalone (demon).</P>
-<P>bftpd stara sie byc bardzo elastycznym przy zachowaniu malego rozmiaru oraz swojej szybkosci. Mozesz wprowadzac wartosci domyslne dla kazdej opcji w konfiguracji a nastepnie nadpisywac je poprzez lokalne parametry.</P>
-<P>Do zalet bftpd zaliczyc mozna: 
+<H2><A name=s1>1.</A> <A 
+href="bftpddoc-pl.html#toc1">Wprowadzenie</A> 
+</H2>
+<P>bftpd to serwer FTP dla Linuxa, BSD/OS, FreeBSD, Solarisa, DG-UX'a i Tru64.
+(nie wiem czy działa także na innych systemach, napisz proszę czy próbowałeś).
+Współpracuje z inetd lub pracuje samodzielnie w trybie demona.</P>
+<P>Intencją aplikacji jest duża elastyczność przy zachowaniu małych rozmiarów i szybkości. Możesz zdefiniować domyślne wartości dla każdej z opcji konfiguracji a następnie nadpisać je w sekcjach dotyczących użytkowników lub katalogów.</P>
+
+<P>Wśród możliwości bftpd są: 
 <UL>
-<LI> Prosta konfiguracje </LI>
-<LI> Predkosc </LI>
-<LI> Obsluge wiekszosci komend FTP RFC </LI>
-<LI> Kompresje w locie do archiwow .tar.gz </LI>
-<LI> Bezpieczenstwo poprzez proste wprowadzenie chroota </LI>
-<LI> Brak koniecznosci udostepniania basha oraz innych komend w srodowisku chroot </LI>
-<LI> Logowanie do wtmp oraz do pliku badz demona syslogd </LI>
-<LI> Obsluge PAM oraz hasel passwd/shadow </LI>
-<LI> Obsluge komend SITE CHOWN/CHMOD
- </LI>
-</UL>
-</P>
+  <LI>Prosta konfiguracja
+  <LI>Szybkość działania
+  <LI>Obsługa większości komend RFC FTP
+  <LI>Kompresja i archiwizacja tar.gz w locie 
+  <LI>Zabezpieczenie chroot bez specjalnej konfiguracji
+  <LI>Brak potrzeby plików (sh, ls...) w środowisku chroot
+  <LI>Logowanie do wtmp i pliku a także do sysloga
+  <LI>Obsługa PAM, passwd/shadow
+  <LI>Obsługa SITE CHOWN/CHMOD </LI></UL>
+<P></P>
 <HR>
-<A HREF="bftpddoc-pl-2.html">Next</A>
-Previous
-<A HREF="bftpddoc-pl.html#toc1">Contents</A>
-</BODY>
-</HTML>
+<A href="bftpddoc-pl-2.html">Dalej</A> 
+Wstecz <A 
+href="bftpddoc-pl.html#toc1">Zawartość</A> 
+</BODY></HTML>

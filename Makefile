@@ -1,14 +1,15 @@
-VERSION=1.5
-CC=@CC@
-INSTALL=@INSTALL@
-CFLAGS=@CFLAGS@ @DEFS@ -Wall -I. -DVERSION=\"$(VERSION)\" -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE @DEBUG@
-LIBS=@LIBS@
-prefix=@prefix@
-mandir=@mandir@
-sbindir=@sbindir@
+# Generated automatically from Makefile.in by configure.
+VERSION=1.4.1
+CC=gcc
+INSTALL=/usr/bin/install -c
+CFLAGS=-g -O2 -DHAVE_CONFIG_H -Wall -I. -DVERSION=\"$(VERSION)\" -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE 
+LIBS= -lcrypt
+prefix=/usr
+mandir=${prefix}/man
+sbindir=${exec_prefix}/sbin
 DESTDIR=
-DIRPAX=@DIRPAX@
-PAX=@PAX@
+DIRPAX=
+PAX=
 
 HEADERS=bftpdutmp.h commands.h commands_admin.h cwd.h dirlist.h list.h login.h logging.h main.h mystring.h options.h targzip.h mypaths.h
 OBJS=bftpdutmp.o commands.o commands_admin.o cwd.o dirlist.o list.o login.o logging.o main.o mystring.o options.o

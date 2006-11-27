@@ -50,11 +50,12 @@
 #include "main.h"
 #include "targzip.h"
 #include "cwd.h"
+#include "bftpdutmp.h"
 
 #ifdef HAVE_ZLIB_H
-# include <zlib.h>
+#include <zlib.h>
 #else
-# undef WANT_GZIP
+#undef WANT_GZIP
 #endif
 
 int state = STATE_CONNECTED;
@@ -67,9 +68,10 @@ char *philename = NULL;
 int offset = 0;
 short int xfertype = TYPE_BINARY;
 int ratio_send = 1, ratio_recv = 1;
-int bytes_sent = 0, bytes_recvd = 0;
+long unsigned bytes_sent = 0, bytes_recvd = 0;
 int epsvall = 0;
 int xfer_bufsize;
+
 
 void control_printf(char success, char *format, ...)
 {
@@ -119,14 +121,14 @@ int dataconn()
 {
 	struct sockaddr foo;
 	struct sockaddr_in local;
-	int namelen = sizeof(foo);
+	socklen_t namelen = sizeof(foo);
     int curuid = geteuid();
 
 	memset(&foo, 0, sizeof(foo));
 	memset(&local, 0, sizeof(local));
 
 	if (pasv) {
-		sock = accept(pasvsock, (struct sockaddr *) &foo, (int *) &namelen);
+		sock = accept(pasvsock, (struct sockaddr *) &foo, (socklen_t *) &namelen);
 		if (sock == -1) {
             control_printf(SL_FAILURE, "425-Unable to accept data connection.\r\n425 %s.",
                      strerror(errno));
@@ -296,7 +298,8 @@ void command_eprt(char *params) {
 
 void command_pasv(char *foo)
 {
-	int namelen, a1, a2, a3, a4;
+	int a1, a2, a3, a4;
+        socklen_t namelen;
 	struct sockaddr_in localsock;
     if (epsvall) {
         control_printf(SL_FAILURE, "500 EPSV ALL has been called.");
@@ -340,7 +343,7 @@ void command_pasv(char *foo)
 		return;
 	}
 	namelen = sizeof(localsock);
-	getsockname(pasvsock, (struct sockaddr *) &localsock, (int *) &namelen);
+	getsockname(pasvsock, (struct sockaddr *) &localsock, (socklen_t *) &namelen);
 	sscanf((char *) inet_ntoa(name.sin_addr), "%i.%i.%i.%i",
 		   &a1, &a2, &a3, &a4);
 	control_printf(SL_SUCCESS, "227 Entering Passive Mode (%i,%i,%i,%i,%i,%i)", a1, a2, a3, a4,
@@ -351,7 +354,7 @@ void command_pasv(char *foo)
 void command_epsv(char *params)
 {
     struct sockaddr_in localsock;
-    int namelen;
+    socklen_t namelen;
     int af;
     if (params[0]) {
         if (!strncasecmp(params, "ALL", 3))
@@ -383,7 +386,7 @@ void command_epsv(char *params)
 		return;
 	}
 	namelen = sizeof(localsock);
-	getsockname(pasvsock, (struct sockaddr *) &localsock, (int *) &namelen);
+	getsockname(pasvsock, (struct sockaddr *) &localsock, (socklen_t *) &namelen);
     control_printf(SL_SUCCESS, "229 Entering extended passive mode (|||%i|)",
              ntohs(localsock.sin_port));
     pasv = 1;
@@ -420,6 +423,62 @@ void command_allo(char *foo)
     command_noop(foo);
 }
 
+
+/* This function allows the storage of multiple files on the server. */
+void command_mput(char *filenames)
+{
+   char filename[MAXCMD];  /* single filename */
+   int from_index, to_index;      /* position in "filenames" and "filename" */
+                                                                                                                             
+   from_index = 0;     /* start at begining of filenames */
+   memset(filename, 0, MAXCMD);       /* clear filename */
+   to_index = 0;
+                                                                                                                             
+   /* go until we find a NULL character */
+   while ( filenames[from_index] > 0)
+   {
+       /* copy filename until we hit a space */
+       if (filenames[from_index] == ' ')
+       {
+          /* got a full filename */
+          command_stor(filename);
+          /* clear filename and reset to_index */
+          to_index = 0;
+          memset(filename, 0, MAXCMD);
+                                                                                                                             
+          while (filenames[from_index] == ' ')
+            from_index++;    /* goto next position */
+       }
+                                                                                                                             
+       /* if we haven't hit a space, then copy the letter */
+       else
+       {
+          filename[to_index] = filenames[from_index];
+          to_index++;
+          from_index++;
+          /* if the next character is a NULL, then this is the end of the filename */
+          if (! filenames[from_index])
+          {
+             command_stor(filename);   /* get the file */
+             to_index = 0;             /* reset filename index */
+             memset(filename, 0, MAXCMD);    /* clear filename buffer */
+             from_index++;                /* goto next character */
+          }
+       }
+                                                                                                                             
+       /* if the buffer is getting too big, then stop */
+       if (to_index > (MAXCMD - 2) )
+       {
+          bftpd_log("Error: Filename in '%s' too long.\n", filenames);
+          return;
+       }
+                                                                                                                             
+    }   /* end of while */
+                                                                                                                             
+}
+
+
+
 void do_stor(char *filename, int flags)
 {
 	char *buffer;
@@ -428,20 +487,104 @@ void do_stor(char *filename, int flags)
     struct timeval tv;
     char *p, *pp;
 	char *mapped = bftpd_cwd_mappath(filename);
-	fd = open(mapped, flags, 00666);
-	if (mapped)
-		free(mapped);
-	if (fd == -1) {
+
+    int my_buffer_size;    /* total transfer buffer size divided by number of clients */
+    int num_clients;       /* number of clients connected to the server */
+    int new_num_clients;
+    int xfer_delay;
+    int attempt_gzip = FALSE;
+    #ifdef HAVE_ZLIB_H
+    gzFile my_zip_file = NULL;
+    #endif
+
+
+    #ifdef HAVE_ZLIB_H
+    if (! strcmp( config_getoption("GZ_UPLOAD"), "yes") )
+    {
+       attempt_gzip = TRUE;
+       strcat(mapped, ".gz");
+    }
+    else
+       attempt_gzip = FALSE;
+    #endif
+ 
+        /* See if we should delay between data transfers */
+        xfer_delay = strtoul( config_getoption("XFER_DELAY"), NULL, 0);
+
+        /* Check to see if the file exists and if we can over-write
+           it, if it does. -- Jesse */
+        fd = open(mapped, O_RDONLY);
+        if (fd >= 0)  /* file exists */
+        {
+           /* close the file */
+           close(fd);
+           /* check if we can over-write it */
+           if ( !strcasecmp( config_getoption("ALLOWCOMMAND_DELE"), "no") )
+           {
+              bftpd_log("Not allowed to over-write '%s'.\n", filename);
+              control_printf(SL_FAILURE, 
+                     "553 Error: Remote file is write protected.");
+
+              if (mapped)
+                 free(mapped);
+              close(sock);
+              return;
+           }
+        }
+
+        if (! attempt_gzip)
+        {        
+	  fd = open(mapped, flags, 00666);
+	  if (mapped)
+	 	free(mapped);
+	  if (fd == -1) {
 		bftpd_log("Error: '%s' while trying to store file '%s'.\n",
 				  strerror(errno), filename);
 		control_printf(SL_FAILURE, "553 Error: %s.", strerror(errno));
 		return;
+          }
 	}
+
+        #ifdef HAVE_ZLIB_H
+        if ( attempt_gzip )
+        {
+           my_zip_file = gzopen(mapped, "wb+");
+           if (mapped)
+               free(mapped);
+           if (! my_zip_file)
+           {
+              control_printf(SL_FAILURE, "553 Error: An error occured creating compressed file.");
+              close(sock);
+              close(fd);
+              return;
+           }
+        }
+        #endif
+
 	bftpd_log("Client is storing file '%s'.\n", filename);
 	if (dataconn())
 		return;
+
+    /* Figure out how big the transfer buffer should be.
+       This will be the total size divided by the number of clients connected.
+       -- Jesse
+    */
+    num_clients = bftpdutmp_usercount("*");
+    my_buffer_size = get_buffer_size(num_clients);
+
     alarm(0);
     buffer = malloc(xfer_bufsize);
+    /* Check to see if we are out of memory. -- Jesse */
+    if (! buffer)
+    {
+       bftpd_log("Unable to create buffer to receive file.\n", 0);
+       control_printf(SL_FAILURE, "553 Error: An unknown error occured on the server.");
+       if (fd >= 0)
+          close(fd);
+       close(sock);
+       return;
+    }
+
 	lseek(fd, offset, SEEK_SET);
 	offset = 0;
     /* Do not use the whole buffer, because a null byte has to be
@@ -459,6 +602,8 @@ void do_stor(char *filename, int flags)
             close(fd);
             control_printf(SL_FAILURE, "426 Kicked due to data transmission timeout.");
             bftpd_log("Kicked due to data transmission timeout.\n");
+            /* Before we exit, let's remove our entry in the log file. -- Jesse */
+            bftpdutmp_end();
             exit(0);
         }
         if (FD_ISSET(fileno(stdin), &rfds)) {
@@ -467,25 +612,59 @@ void do_stor(char *filename, int flags)
 				free(buffer);
             return;
         }
-		if (!((i = recv(sock, buffer, xfer_bufsize - 1, 0))))
+
+	if (!((i = recv(sock, buffer, my_buffer_size - 1, 0))))
             break;
         bytes_recvd += i;
         if (xfertype == TYPE_ASCII) {
             buffer[i] = '\0';
+            /* on ASCII stransfer, strip character 13 */
             p = pp = buffer;
-    		while (*p) {
+    	    while (*p) {
         		if ((unsigned char) *p == 13)
         			p++;
         		else
         			*pp++ = *p++;
-            }
+            }   
         	*pp++ = 0;
             i = strlen(buffer);
+        }     // end of if ASCII type transfer
+
+        #ifdef HAVE_ZLIB_H
+           if (my_zip_file)
+               gzwrite( my_zip_file, buffer, i );    
+        #endif
+           if(! attempt_gzip)
+              write(fd, buffer, i);
+
+        /* Check to see if our bandwidth usage should change. -- Jesse */
+        new_num_clients = bftpdutmp_usercount("*");
+        if (new_num_clients != num_clients)
+        {
+            num_clients = new_num_clients;
+            my_buffer_size = get_buffer_size(num_clients);
         }
-        write(fd, buffer, i);
-	}
+
+        /* check for transfer delay */
+        if ( xfer_delay )
+        {
+            struct timeval wait_time;
+
+            wait_time.tv_sec = 0;
+            wait_time.tv_usec = xfer_delay;
+            select( 0, NULL, NULL, NULL, &wait_time);
+        }
+
+
+	}     // end of for loop, reading
+
 	free(buffer);
-	close(fd);
+        #ifdef HAVE_ZLIB_H
+          gzclose(my_zip_file);
+        #else
+	  close(fd);
+        #endif
+
 	close(sock);
     alarm(control_timeout);
     offset = 0;
@@ -503,11 +682,72 @@ void command_appe(char *filename)
     do_stor(filename, O_CREAT | O_WRONLY | O_APPEND);
 }
 
+
+
+
+/* Send multpile files to the client. */
+void command_mget(char *filenames)
+{
+   char filename[MAXCMD];  /* single filename */
+   int from_index, to_index;      /* position in "filenames" and "filename" */
+
+   from_index = 0;     /* start at begining of filenames */
+   memset(filename, 0, MAXCMD);       /* clear filename */
+   to_index = 0;   
+
+   /* go until we find a NULL character */
+   while ( filenames[from_index] > 0)
+   {
+       /* copy filename until we hit a space */
+       if (filenames[from_index] == ' ') 
+       {
+          /* got a full filename */
+          command_retr(filename);
+          /* clear filename and reset to_index */
+          to_index = 0;
+          memset(filename, 0, MAXCMD);
+
+          while (filenames[from_index] == ' ')
+            from_index++;    /* goto next position */
+       }
+       
+       /* if we haven't hit a space, then copy the letter */
+       else
+       {
+          filename[to_index] = filenames[from_index];
+          to_index++;
+          from_index++;
+          /* if the next character is a NULL, then this is the end of the filename */
+          if (! filenames[from_index])
+          {
+             command_retr(filename);   /* send the file */
+             to_index = 0;             /* reset filename index */
+             memset(filename, 0, MAXCMD);    /* clear filename buffer */
+             from_index++;                /* goto next character */
+          }
+       }
+
+       /* if the buffer is getting too big, then stop */
+       if (to_index > (MAXCMD - 2) )
+       {
+	  bftpd_log("Error: Filename in '%s' too long.\n", filenames);
+          return;
+       }
+
+    }   /* end of while */
+   
+}
+
 void command_retr(char *filename)
 {
+        int num_clients, new_num_clients;   /* number of connectiosn to the server */
+        int my_buffer_size;                 /* size of the transfer buffer to use */
 	char *mapped;
 	char *buffer;
-#ifdef WANT_GZIP
+        int xfer_delay;
+        struct timeval wait_time;
+
+#if (defined(WANT_GZIP) || defined(HAVE_ZLIB_H))
     gzFile gzfile;
 #endif
 	int phile;
@@ -525,9 +765,12 @@ void command_retr(char *filename)
 #ifdef WANT_TAR
     char *argv[4];
 #endif
+
+        xfer_delay = strtoul( config_getoption("XFER_DELAY"), NULL, 0);
+
 	mapped = bftpd_cwd_mappath(filename);
 	phile = open(mapped, O_RDONLY);
-	if (phile == -1) {
+	if (phile == -1) {       // failed to open a file
 #if (defined(WANT_TAR) && defined(WANT_GZIP))
 		if ((foo = strstr(filename, ".tar.gz")))
 			if (strlen(foo) == 7) {
@@ -557,7 +800,24 @@ void command_retr(char *filename)
 				free(mapped);
 			return;
 		}
-	} /* No else, the file remains open so that it needn't be opened again */
+	}
+
+        #ifdef HAVE_ZLIB_H
+        else  // we did open a file
+        {
+            char *my_temp;
+            char *zip_option;
+
+            my_temp = strstr(filename, ".gz");
+            zip_option = config_getoption("GZ_DOWNLOAD");
+            if (my_temp)
+            {
+               if ( ( strlen(my_temp) == 3) && (! strcmp(zip_option, "yes") ) )
+                  whattodo = DO_GZUNZIP;
+            }
+        }
+        #endif
+
 	stat(mapped, (struct stat *) &statbuf);
 	if (S_ISDIR(statbuf.st_mode)) {
 		control_printf(SL_FAILURE, "550 Error: Is a directory.");
@@ -590,12 +850,41 @@ void command_retr(char *filename)
             pipe(filedes);
             if (fork()) {
                 buffer = malloc(xfer_bufsize);
+                /* check to make sure alloc worked */
+                if (! buffer)
+                {
+                   if (mapped)
+                      free(mapped);
+                   bftpd_log("Memory error in sending file.\n", 0);
+                   control_printf(SL_FAILURE, "553 An unknown error occured on the server.", 9);
+                   return;
+                }
+
+                /* find the size of the transfer buffer divided by number of connections */
+                num_clients =  bftpdutmp_usercount("*");
+                my_buffer_size = get_buffer_size(num_clients);
+                
                 close(filedes[1]);
                 gzfile = gzdopen(sock, "wb");
-                while ((i = read(filedes[0], buffer, xfer_bufsize))) {
+                while ((i = read(filedes[0], buffer, my_buffer_size))) {
                     gzwrite(gzfile, buffer, i);
                     test_abort(1, phile, sock);
-                }
+
+                    /* check for a change in number of connections */
+                    new_num_clients = bftpdutmp_usercount("*");
+                    if (new_num_clients != num_clients)
+                    {
+                        num_clients = new_num_clients;
+                        my_buffer_size = get_buffer_size(num_clients);
+                    }
+                    /* pause between transfers */
+                    if (xfer_delay)
+                    {
+                        wait_time.tv_sec = 0;
+                        wait_time.tv_usec = xfer_delay;
+                        select( 0, NULL, NULL, NULL, &wait_time);
+                    }
+                }     // end of while 
                 free(buffer);
                 gzclose(gzfile);
                 wait(NULL); /* Kill the zombie */
@@ -649,17 +938,101 @@ void command_retr(char *filename)
 			}
             alarm(0);
             buffer = malloc(xfer_bufsize);
+            /* check for alloc error */
+            if (! buffer)
+            {
+               bftpd_log("Memory error while sending file.", 0);
+               control_printf(SL_FAILURE, "553 An unknown error occured on the server.", 0);
+               if (phile) close(phile);
+               return;
+            }
+
+            /* check buffer size based on number of connections */
+            num_clients = bftpdutmp_usercount("*");
+            my_buffer_size = get_buffer_size(num_clients);
             /* Use "wb9" for maximum compression, uses more CPU time... */
             gzfile = gzdopen(sock, "wb");
-            while ((i = read(phile, buffer, xfer_bufsize))) {
+            while ((i = read(phile, buffer, my_buffer_size))) {
                 gzwrite(gzfile, buffer, i);
                 test_abort(1, phile, sock);
+                new_num_clients = bftpdutmp_usercount("*");
+                if ( new_num_clients != num_clients )
+                {
+                    num_clients = new_num_clients;
+                    my_buffer_size = get_buffer_size(num_clients);
+                }
+                /* pause between transfers */
+                if (xfer_delay)
+                {
+                    wait_time.tv_sec = 0;
+                    wait_time.tv_usec = xfer_delay;
+                    select( 0, NULL, NULL, NULL, &wait_time);
+                }
             }
             free(buffer);
             close(phile);
             gzclose(gzfile);
             break;
 #endif
+
+#ifdef HAVE_ZLIB_H
+            case DO_GZUNZIP:
+               if ( dataconn() )
+                  return;
+
+               gzfile = gzdopen(phile, "rb");
+               if (! gzfile)
+               {
+                   close(phile);
+                   bftpd_log("Memory error while sending file.", 0);
+                   control_printf(SL_FAILURE, "553 An unknown error occured on the server.", 0);
+                   return;
+               }
+
+               alarm(0);
+               buffer = malloc(xfer_bufsize);
+               if (! buffer)
+               {
+                  close(phile);
+                  gzclose(gzfile);
+                  bftpd_log("Memory error while sending file.", 0);
+                  control_printf(SL_FAILURE, "553 An unknown error occured on the server.", 0);
+                  return;
+               }
+
+               /* check buffer size based on number of connections */
+               num_clients = bftpdutmp_usercount("*");
+               my_buffer_size = get_buffer_size(num_clients);
+
+               i = gzread(gzfile, buffer, my_buffer_size);
+               while ( i )
+               {
+                   write(sock, buffer, i);
+                   // test_abort(1, phile, sock);
+
+                   new_num_clients = bftpdutmp_usercount("*");
+                   if ( new_num_clients != num_clients )
+                   {
+                      num_clients = new_num_clients;
+                      my_buffer_size = get_buffer_size(num_clients);
+                   }
+                   /* pause between transfers */
+                   if (xfer_delay)
+                   {
+                      wait_time.tv_sec = 0;
+                      wait_time.tv_usec = xfer_delay;
+                      select( 0, NULL, NULL, NULL, &wait_time);
+                   }
+
+                   i = gzread(gzfile, buffer, my_buffer_size);
+               }   // end of while not end of file
+
+               free(buffer);
+               close(phile);
+               gzclose(gzfile);
+            break;    // send file and unzip on the fly
+#endif
+
 		case DO_NORMAL:
 			if (mapped)
 				free(mapped);
@@ -670,10 +1043,27 @@ void command_retr(char *filename)
             sendfile_offset = offset;
             if (xfertype != TYPE_ASCII) {
                 alarm_type = phile;
-                while (sendfile(sock, phile, &sendfile_offset, xfer_bufsize)) {
+                alarm(data_timeout);   /* maybe they won't get any... */
+                num_clients = bftpdutmp_usercount("*");
+                my_buffer_size = get_buffer_size(num_clients);
+                while (sendfile(sock, phile, &sendfile_offset, my_buffer_size)) {
                     alarm(data_timeout);
                     if (test_abort(1, phile, sock))
                         return;
+                    new_num_clients = bftpdutmp_usercount("*");
+                    if ( num_clients != new_num_clients )
+                    {
+                        num_clients = new_num_clients;
+                        my_buffer_size = get_buffer_size(num_clients);
+                    }
+                    /* pause between transfers */
+                    if (xfer_delay)
+                    {
+                        wait_time.tv_sec = 0;
+                        wait_time.tv_usec = xfer_delay;
+                        select( 0, NULL, NULL, NULL, &wait_time);
+                    }
+
                 }
                 alarm(control_timeout);
                 alarm_type = 0;
@@ -682,7 +1072,18 @@ void command_retr(char *filename)
 			lseek(phile, offset, SEEK_SET);
 			offset = 0;
 			buffer = malloc(xfer_bufsize * 2 + 1);
-			while ((i = read(phile, buffer, xfer_bufsize))) {
+                        /* make sure buffer was created */
+                        if (! buffer)
+                        {
+                            control_printf(SL_FAILURE, "553 An unknown error occured.");
+                            bftpd_log("Memory error while trying to send file.", 0);
+                            close(sock);
+                            close(phile);
+                            return;
+                        }
+                        num_clients = bftpdutmp_usercount("*");
+                        my_buffer_size = get_buffer_size(num_clients);
+			while ((i = read(phile, buffer, my_buffer_size))) {
 				if (test_abort(1, phile, sock)) {
 					free(buffer);
 					return;
@@ -698,7 +1099,18 @@ void command_retr(char *filename)
 #endif
 				send(sock, buffer, i, 0);
 				bytes_sent += i;
-			}
+              
+                                new_num_clients = bftpdutmp_usercount("*");
+                                my_buffer_size = get_buffer_size(num_clients);
+                                /* pause between transfers */
+                                if (xfer_delay)
+                                {
+                                   wait_time.tv_sec = 0;
+                                   wait_time.tv_usec = xfer_delay;
+                                   select( 0, NULL, NULL, NULL, &wait_time);
+                                }
+
+			}       // end of while
             free(buffer);
 #ifdef HAVE_SYS_SENDFILE_H
             }
@@ -709,7 +1121,7 @@ void command_retr(char *filename)
     offset = 0;
     alarm(control_timeout);
 	control_printf(SL_SUCCESS, "226 File transmission successful.");
-	bftpd_log("File transmission successful.\n");
+	bftpd_log("File transmission of '%s' successful.\n", filename);
 }
 
 void do_dirlist(char *dirname, char verbose)
@@ -894,6 +1306,8 @@ void command_size(char *filename)
 void command_quit(char *params)
 {
 	control_printf(SL_SUCCESS, "221 %s", config_getoption("QUIT_MSG"));
+        /* Make sure we log user out. -- Jesse <slicer69@hotmail.com> */
+        bftpdutmp_end();
 	exit(0);
 }
 
@@ -1034,6 +1448,8 @@ const struct command commands[] = {
     {"FEAT", "(returns list of extensions)", command_feat, STATE_AUTHENTICATED, 0},
 /*    {"AUTH", "<sp> authtype", command_auth, STATE_CONNECTED, 0},
 */    {"ADMIN_LOGIN", "(admin)", command_adminlogin, STATE_CONNECTED, 0},
+      {"MGET", "<sp> pathname", command_mget, STATE_AUTHENTICATED, 0},
+      {"MPUT", "<sp> pathname", command_mput, STATE_AUTHENTICATED, 0},
 	{NULL, NULL, NULL, 0, 0}
 };
 
@@ -1109,5 +1525,20 @@ int parsecmd(char *str)
 	}
 	control_printf(SL_FAILURE, "500 Unknown command: \"%s\"", str);
 	return 0;
+}
+
+
+int get_buffer_size(int num_connections)
+{
+   int buffer_size;
+
+   if (num_connections < 1)
+      num_connections = 1;
+
+   buffer_size = xfer_bufsize / num_connections;
+   if ( buffer_size < 2)
+      buffer_size = 2;
+
+   return buffer_size;
 }
 
