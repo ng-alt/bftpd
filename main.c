@@ -292,13 +292,9 @@ void handler_sigchld (int sig)
 
 
     /* Get the child's return code so that the zombie dies */
-    // pid = wait (NULL);
-    pid = waitpid(-1, NULL, WNOHANG);
-    
-    while (pid > 0)
+    pid = wait (NULL);
+    for (i = 0; i < bftpd_list_count (child_list); i++)
     {
-    	for (i = 0; i < bftpd_list_count (child_list); i++)
-    	{
         childpid = bftpd_list_get (child_list, i);
         if (childpid->pid == pid)
         {
@@ -307,13 +303,11 @@ void handler_sigchld (int sig)
             free (childpid);
             /* make sure the child is removed from the log */
             bftpdutmp_remove_pid (pid);
-#ifdef MAX_USB_ACCESS
-	    			dec_conn_num();
+#ifdef MAX_USB_ACCESS	    
+	    dec_conn_num();
 #endif	    
         }
-    	}
-    	pid = waitpid(-1, NULL, WNOHANG);    /* check for more children */
-  	}
+    }
 }
 
 void handler_sigterm (int signum)
@@ -489,24 +483,10 @@ int main (int argc, char **argv)
         //exit(1);
     }
     /* attach the shared memory segment, at a different address. */
-    if(segment_id != -1)
-    {
-        //con_st = (CON_STATISTIC*) shmat (segment_id, (void*) 0x5000000, 0);
-        con_st = (CON_STATISTIC*) shmat (segment_id, NULL, 0);
-                
-        if(con_st != -1)
-        {
-        		printf ("shared memory reattached at address %p\n", con_st);
-        		con_st->ftp_num = 0;
-        }
-        else
-        {
-            con_st = NULL;
-            printf ("shared memory reattached failed\n");
-      	}
-    }    
-    else 
-    {
+    if(segment_id != -1){
+        con_st = (CON_STATISTIC*) shmat (segment_id, (void*) 0x5000000, 0);
+        printf ("shared memory reattached at address %p\n", con_st);
+    }    else {
         con_st = NULL;
 	printf ("fail to get shared memory reattached at address \n");
     }	
