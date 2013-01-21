@@ -14,7 +14,7 @@ struct global config_global;
 struct group_of_users *config_groups;
 struct user *config_users;
 
-int readyshareCloud_conn = 0;
+int readyshareCloud_conn = 0;	
 /*
 Returns NULL on error. May return
 emtpy string "" for empty or
@@ -22,25 +22,23 @@ commented lines.
 */
 char *config_read_line(FILE *configfile)
 {
-    // jjw patch 4.2 memory err
-    static char str[MAX_STRING_LENGTH];
-    char *s = str;
-    if (!fgets(str, MAX_STRING_LENGTH, configfile))
-        return NULL;
-
-    while ((strchr(s, '#') > strchr(s, '"')) && strchr(s, '"')) {
-        s = strchr(strchr(s, '"') + 1, '"');
-        if (!s) { // This means there is only one " in the string, which is a syntax error.
-            str[0] = 0; // So we empty the string in order not to confuse the parser.
-            return str;
-        }
-    }
-    if (strchr(s, '#'))
-        *strchr(s, '#') = 0;
-    s = str;
-    while ((s[0] == ' ') || (s[0] == '\t'))
-        s++;
-    return s;
+	static char str[256];
+	char *s = str;
+	if (!fgets(str, sizeof(str), configfile))
+		return NULL;
+	while ((strchr(s, '#') > strchr(s, '"')) && strchr(s, '"')) {
+		s = strchr(strchr(s, '"') + 1, '"');
+		if (!s) { // This means there is only one " in the string, which is a syntax error.
+			str[0] = 0; // So we empty the string in order not to confuse the parser.
+			return str;
+		}
+	}
+	if (strchr(s, '#'))
+		*strchr(s, '#') = 0;
+	s = str;
+	while ((s[0] == ' ') || (s[0] == '\t'))
+		s++;
+	return s;
 }
 
 void create_options(FILE *configfile, struct bftpd_option **options, struct directory **directories)
@@ -48,10 +46,9 @@ void create_options(FILE *configfile, struct bftpd_option **options, struct dire
     char *str;
     struct bftpd_option *opt = NULL;
     struct directory *dir = NULL;
-    str = config_read_line(configfile);
-    if (!str) return; // jjw patch from 4.2 mem err
-    while (!strchr(str, '}')) {
-        if (str[0] != '\n') {
+	str = config_read_line(configfile);
+	while (!strchr(str, '}')) {
+  		if (str[0] != '\n') {
             if ((strstr(str, "directory")) && (strchr(str, '{')) && (directories)) {
                 char *tmp;
                 if (dir) {
@@ -59,37 +56,24 @@ void create_options(FILE *configfile, struct bftpd_option **options, struct dire
                 } else {
                     *directories = dir = malloc(sizeof(struct directory));
                 }
-                if (!dir) return; //avoid segfault; jjw patch from 4.2 mem err
-
-                // jjw patch from 4.2 start mem err
-                //tmp = strchr(str, '"') + 1;
-                tmp = strchr(str, '"');
-                if (tmp)
-                {
-                    tmp++;
+                tmp = strchr(str, '"') + 1;
                 *strchr(tmp, '"') = 0;
                 dir->path = strdup(tmp);
-                }
-                if (!dir->path)
-                    dir->path = "";
-                // jjw patch from 4.2 end
                 create_options(configfile, &(dir->options), NULL);
             } else {
-                if (opt) {
-                    opt = opt->next = malloc(sizeof(struct bftpd_option));
-                } else {
-                    *options = opt = malloc(sizeof(struct bftpd_option));
-                }
-                if(!opt) return; // jjw patch from 4.2 mem err; avoid bail out on memory error
-                opt->name = (char *) malloc(strlen(str)+1);
-                // opt->value = (char *) malloc(strlen(str));
+       			if (opt) {
+       				opt = opt->next = malloc(sizeof(struct bftpd_option));
+       			} else {
+       				*options = opt = malloc(sizeof(struct bftpd_option));
+       			}
+       			opt->name = (char *) malloc(strlen(str));
+       			// opt->value = (char *) malloc(strlen(str));
                         opt->value = (char *) malloc( strlen(str) + 256);
-                sscanf(str, "%[^=]=\"%[^\n\"]", opt->name, opt->value);
+       			sscanf(str, "%[^=]=\"%[^\n\"]", opt->name, opt->value);
             }
-        }
-        str = config_read_line(configfile);
-        if(!str) return; //avoid segfault;jjw patch from 4.2 mem err
-    }
+   		}
+		str = config_read_line(configfile);
+	}
 }
 
 void expand_groups()
@@ -119,7 +103,6 @@ void expand_groups()
                         endg = endg->next = malloc(sizeof(struct list_of_struct_group));
                     else
                         grp->groups = endg = malloc(sizeof(struct list_of_struct_group));
-                    if(!endg) return; // bail out on erro ; jjw patch from 4.2 mem err
                     endg->grp.gr_name = strdup(grpinfo->gr_name);
                     endg->grp.gr_passwd = strdup(grpinfo->gr_passwd);
                     endg->grp.gr_gid = grpinfo->gr_gid;
@@ -128,7 +111,7 @@ void expand_groups()
                     for (i = 0; grpinfo->gr_mem[i]; i++)
                         endg->grp.gr_mem[i] = strdup(grpinfo->gr_mem[i]);
                     endg->grp.gr_mem[i] = NULL;
-                }
+                } 
                 if (sscanf(foo, "%i", &uid)) {
                     if (!((temp = getpwuid(uid))))
                         continue;
@@ -139,7 +122,6 @@ void expand_groups()
                     endp = endp->next = malloc(sizeof(struct list_of_struct_passwd));
                 else
                     grp->users = endp = malloc(sizeof(struct list_of_struct_passwd));
-                if(!endg) return; // bail out on erro; jjw patch from 4.2 mem err
                 /* This is ugly, but you can't just use memcpy()! */
                 endp->pwd.pw_name = strdup(temp->pw_name);
                 endp->pwd.pw_passwd = strdup(temp->pw_passwd);
@@ -156,23 +138,23 @@ void expand_groups()
 
 void config_init()
 {
-    FILE *configfile;
-    char *str;
+	FILE *configfile;
+	char *str;
     struct group_of_users *grp = NULL;
     struct user *usr = NULL;
     config_global.options = NULL;
     config_global.directories = NULL;
-    if (!configpath)
-        return;
-    configfile = fopen(configpath, "r");
-    if (!configfile) {
-        control_printf(SL_FAILURE, "421 Unable to open configuration file.");
-        exit(1);
-    }
-    if (strstr(configpath, "rscloud"))
-        readyshareCloud_conn = 1;
-    while ((str = config_read_line(configfile))) {
-        if (strchr(str, '{')) {
+	if (!configpath)
+		return;
+	configfile = fopen(configpath, "r");
+	if (!configfile) {
+		control_printf(SL_FAILURE, "421 Unable to open configuration file.");
+		exit(1);
+	}
+	if (strstr(configpath, "rscloud"))
+		readyshareCloud_conn = 1;
+	while ((str = config_read_line(configfile))) {
+		if (strchr(str, '{')) {
             replace(str, " {", "{");
             replace(str, "{ ", "{");
             replace(str, " }", "}");
@@ -185,21 +167,7 @@ void config_init()
                 } else {
                     config_users = usr = malloc(sizeof(struct user));
                 }
-                // jjw patch from 4.2 avoid memory error start
-                if (!usr)
-                {
-                    fclose(configfile);
-                    control_printf(SL_FAILURE, "421 Memory error while reading config file.");
-                    return;
-                }
                 usr->name = strdup(str + 5);
-                if (! usr->name)
-                {
-                    fclose(configfile);
-                    control_printf(SL_FAILURE, "421 Memory error while handling config file.");
-                    exit(1);
-                }
-                // jjw patch from 4.2 avoid memory error end
                 *strchr(usr->name, '{') = 0;
                 create_options(configfile, &(usr->options), &(usr->directories));
             } else if (strstr(str, "group ") == str) {
@@ -208,14 +176,6 @@ void config_init()
                 } else {
                     config_groups = grp = malloc(sizeof(struct group_of_users));
                 }
-                // jjw patch from 4.2 mem err
-                if (! grp)
-                {
-                    fclose(configfile);
-                    control_printf(SL_FAILURE, "421 Memory error while handling config file.");
-                    exit(1);
-                }
-
                 cutto(str, 6);
                 *strchr(str, '{') = 0;
                 grp->users = NULL;
@@ -223,39 +183,31 @@ void config_init()
                 grp->temp_members = strdup(str);
                 create_options(configfile, &(grp->options), &(grp->directories));
             }
-        }
-    }
-    fclose(configfile);
+		}
+	}
+	fclose(configfile);
 }
 
 char *getoption(struct bftpd_option *opt, char *name)
 {
-    if (!opt)
-        return NULL;
-    if (!name) return NULL; // jjw patch from 4.2 mem err
-    do {
-        if (opt->name) //avoid segfault; jjw patch from 4.2 mem err
-        {
-        if (!strcasecmp(opt->name, name))
-            return opt->value;
-        }
-    } while ((opt = opt->next));
+	if (!opt)
+		return NULL;
+	do {
+		if (!strcasecmp(opt->name, name))
+			return opt->value;
+	} while ((opt = opt->next));
     return NULL;
 }
 
 char *getoption_directories(struct directory *dir, char *name) {
-    char curpath[MAX_STRING_LENGTH], *bar;
+    char curpath[256], *bar;
     struct directory *longest = NULL;
-    // jjw patch from 4.2 start mem err
     if(!dir)
         return NULL;
-    memset(curpath, '\0', MAX_STRING_LENGTH);
-    // jjw patch from 4.2 end
     getcwd(curpath, sizeof(curpath) - 1);
     strcat(curpath, "/");
     do {
         bar = malloc(strlen(dir->path) + 2);
-        if (!bar) return NULL; // avoid segfault; jjw patch from 4.2 mem err
         strcpy(bar, dir->path);
         strcat(bar, "/");
         if (!strncmp(curpath, bar, strlen(bar))) {
@@ -289,13 +241,9 @@ char user_is_in_group(struct group_of_users *grp) {
         do {
             if (userinfo.pw_gid == grplist->grp.gr_gid)
                 return 1;
-            //jjw patch from 4.2; avoid segfault; mem err
-            if (grplist->grp.gr_mem)
-            {
             for (i = 0; grplist->grp.gr_mem[i]; i++)
                 if (!strcmp(grplist->grp.gr_mem[i], user))
                     return 1;
-            }
         } while ((grplist = grplist->next));
     }
     return 0;
@@ -353,7 +301,7 @@ char *config_getoption(char *name)
 {
     static char empty = 0;
 //    char *result;
-    char *foo;
+	char *foo;
     if (userinfo_set) {
         if ((foo = getoption_user(name)))
             return foo;
@@ -456,7 +404,7 @@ void Reread_Config_File()
        {
            char *temp;
            new_value++;      // go to first character after quote
-           temp = strchr(new_value, '"');
+           temp = strchr(new_value, '"');  
            if (temp)
               temp[0] = '\0';    // null terminal string
        }
@@ -465,7 +413,7 @@ void Reread_Config_File()
        if ( (config_value) && (new_value) && (section == 1) )
        {
            // make sure it will fit.
-           if ( strlen(new_value) < 256)
+           if ( strlen(new_value) < 256) 
               strcpy(config_value, new_value);
        }
 
@@ -490,3 +438,5 @@ void Reread_Config_File()
     xfer_delay = atoi( config_getoption("XFER_DELAY") );
 }
 /* end of re-read config file */
+
+

@@ -26,27 +26,27 @@ FILE *statuslogforreading = NULL;
 
 char log_syslog = 0;
 
-#ifdef LEAN
+#ifdef LEAN 
 void log_init()
 {
 }
 #else
 void log_init()
 {
-    char *foo = config_getoption("LOGFILE");
-//    char *foo = "/var/log/bftpd.log";
+//    char *foo = config_getoption("LOGFILE");
+    char *foo = "/var/log/bftpd.log";
 #ifdef HAVE_SYSLOG_H
-    if (!strcasecmp(foo, "syslog")) {
+	if (!strcasecmp(foo, "syslog")) {
         log_syslog = 1;
-        openlog(global_argv[0], LOG_PID, LOG_DAEMON);
-    } else
+		openlog(global_argv[0], LOG_PID, LOG_DAEMON);
+	} else
 #endif
     if (foo[0])
         if (!(logfile = fopen(foo, "a"))) {
-            control_printf(SL_FAILURE, "421-Could not open log file.\r\n"
-                     "421 Server disabled for security reasons.");
-            exit(1);
-        }
+    		control_printf(SL_FAILURE, "421-Could not open log file.\r\n"
+    		         "421 Server disabled for security reasons.");
+    		exit(1);
+    	}
     statuslog = fopen(PATH_STATUSLOG, "a");
     /* This one is for the admin code. */
     statuslogforreading = fopen(PATH_STATUSLOG, "r");
@@ -60,7 +60,7 @@ void log_init()
  * Type2: If Type = SL_INFO or SL_COMMAND, Type2 is SL_UNDEF. Else,
  * it's SL_SUCCESS for success and SL_FAILURE for error.
  */
-#ifdef LEAN
+#ifdef LEAN 
 void bftpd_statuslog(char type, char type2, char *format, ...)
 {
 }
@@ -81,28 +81,28 @@ void bftpd_statuslog(char type, char type2, char *format, ...)
 }
 #endif
 
-#ifdef LEAN
+#ifdef LEAN 
 void bftpd_log(char *format, ...)
 {
 }
 #else
 void bftpd_log(char *format, ...)
 {
-    va_list val;
-    char buffer[1024], timestr[40];
-    time_t t;
-    va_start(val, format);
-    vsnprintf(buffer, sizeof(buffer), format, val);
-    va_end(val);
-    if (logfile) {
-        fseek(logfile, 0, SEEK_END);
-        time(&t);
-        strcpy(timestr, (char *) ctime(&t));
-        timestr[strlen(timestr) - 1] = '\0';
-        fprintf(logfile, "%s %s[%i]: %s", timestr, global_argv[0],
-                (int) getpid(), buffer);
-        fflush(logfile);
-    }
+	va_list val;
+	char buffer[1024], timestr[40];
+	time_t t;
+	va_start(val, format);
+	vsnprintf(buffer, sizeof(buffer), format, val);
+	va_end(val);
+	if (logfile) {
+		fseek(logfile, 0, SEEK_END);
+		time(&t);
+		strcpy(timestr, (char *) ctime(&t));
+		timestr[strlen(timestr) - 1] = '\0';
+		fprintf(logfile, "%s %s[%i]: %s", timestr, global_argv[0],
+				(int) getpid(), buffer);
+		fflush(logfile);
+	}
 #ifdef HAVE_SYSLOG_H
     else if (log_syslog)
         syslog(LOG_DAEMON | LOG_INFO, "%s", buffer);
@@ -110,20 +110,20 @@ void bftpd_log(char *format, ...)
 }
 #endif
 
-#ifdef LEAN
+#ifdef LEAN 
 void log_end()
 {
 }
 #else
 void log_end()
 {
-    if (logfile) {
-        fclose(logfile);
-        logfile = NULL;
-    }
+	if (logfile) {
+		fclose(logfile);
+		logfile = NULL;
+	}
 #ifdef HAVE_SYSLOG_H
     else if (log_syslog)
-        closelog();
+		closelog();
 #endif
     if (statuslog) {
         fclose(statuslog);

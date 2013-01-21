@@ -55,7 +55,7 @@ static unsigned long long get_real_file_size(struct stat *st)
     unsigned long long file_size_64;
     unsigned long long order;
 
-    /* Check whether file size > 4GB which exceeds 32-bit st->st_size
+    /* Check whether file size > 4GB which exceeds 32-bit st->st_size 
      *  st->sb_blocks in units of 512 bytes.
      *  If 'st->sb_blocks' x 512 > 4GB, then this file > 4GB.
      */
@@ -107,7 +107,7 @@ void hidegroups_init()
             if (strtoul(bar, NULL, 10))
                 add_to_hidegroups(strtoul(bar, NULL, 10));
     }
-    free(foo_save);
+	free(foo_save);
 }
 
 void hidegroups_end()
@@ -119,29 +119,6 @@ void hidegroups_end()
             free(hidegroups);
             hidegroups = tmp;
         }
-}
-
-int is_shares(char *file_name)
-{
-    char *tmp = bftpd_cwd_mappath(file_name);
-    char curr_dir[1024];
-    int shares=0;
-
-    memset(curr_dir, 0, sizeof(curr_dir));
-    getcwd(curr_dir, sizeof(curr_dir)-1);
-    // block others than shares
-    if (tmp)
-    {
-        if ((strcasecmp(curr_dir,"/") == 0)
-            && (strcasecmp(tmp,"/shares") != 0))
-            shares = 0;
-        else
-            shares = 1;
-
-        free(tmp);
-    }
-
-    return shares;
 }
 
 /*  added start pling 06/20/2009 */
@@ -156,18 +133,16 @@ int is_dir_allow_read(char *dir_name)
      */
     memset(curr_dir, 0, sizeof(curr_dir));
     getcwd(curr_dir, sizeof(curr_dir)-1);
-
-
-   // bftpd_log("Cwd='%s', checking '%s' ; tmp:%s for admin-read\n", curr_dir, dir_name,tmp);
+    
+    bftpd_log("Cwd='%s', checking '%s' for admin-read\n", curr_dir, dir_name);
 
     if (chdir(dir_name))
-        bftpd_log("[is_dir_allow_read] Unable to chdir '%s', errno=%d\n", dir_name, errno);
+        bftpd_log("Unable to chdir '%s', errno=%d\n", dir_name, errno);
     else
     {
-        //bftpd_log("ALLOWCOMMAND_LIST:%s \n",getoption_user("ALLOWCOMMAND_LIST"));
         if (!strcasecmp(getoption_user("ALLOWCOMMAND_LIST"), "yes"))
             allow_read = 1;
-        chdir(curr_dir);
+    	    chdir(curr_dir);
     }
 
     return allow_read;
@@ -188,14 +163,10 @@ void bftpd_stat(char *name, FILE * client)
         return;
     }
 
-
-    if(!is_shares(name))
-        return;
-#if 1
+#if 0    
     /*  added start pling 06/20/2009 */
     /* Don't let 'guest' user see "Admin-read" folders */
-    if ((S_ISDIR(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
-        && ( strcmp(user, "admin") != 0 ) )
+    if (S_ISDIR(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
     {
         if (!is_dir_allow_read(name))
             return;
@@ -203,58 +174,62 @@ void bftpd_stat(char *name, FILE * client)
     /*  added end pling 06/20/2009 */
 #endif
 
+    //if ( strcmp(user, "admin") != 0 ) {
+    //    if ( !is_dir_allow_read(name) )
+    //        return;	       
+    //}	    
 
 #ifdef S_ISLNK
-    if (S_ISLNK(statbuf.st_mode)) {
+	if (S_ISLNK(statbuf.st_mode)) {
         /*  modified start pling 03/09/2010 */
-        /* Show links as directories, other Safari can't
+        /* Show links as directories, other Safari can't 
          * handle links properly.
          * Note: in FAT32/NTFS, there are no links.
          * This link is either "USB_Storage", "T_Drive"
          * or other share names that user defines.
          */
-        //strcpy(perm, "lrwxrwxrwx");
-        strcpy(perm, "drwxrwxrwx");
+		//strcpy(perm, "lrwxrwxrwx");
+		strcpy(perm, "drwxrwxrwx");
         /*  modified end pling 03/09/2010 */
         /*  modified start pling 06/20/2009 */
         /* Don't show symlink */
 #if 0
-        temp[readlink(name, temp, sizeof(temp) - 1)] = '\0';
-        sprintf(linktarget, " -> %s", temp);
+		temp[readlink(name, temp, sizeof(temp) - 1)] = '\0';
+		sprintf(linktarget, " -> %s", temp);
 #endif
         linktarget[0] = '\0';
         /*  modified end pling 06/20/2009 */
-    } else {
+	} else {
 #endif
-        strcpy(perm, "----------");
-        if (S_ISDIR(statbuf.st_mode))
-            perm[0] = 'd';
-        if (statbuf.st_mode & S_IRUSR)
-            perm[1] = 'r';
-        if (statbuf.st_mode & S_IWUSR)
-            perm[2] = 'w';
-        if (statbuf.st_mode & S_IXUSR)
-            perm[3] = 'x';
-        if (statbuf.st_mode & S_IRGRP)
-            perm[4] = 'r';
-        if (statbuf.st_mode & S_IWGRP)
-            perm[5] = 'w';
-        if (statbuf.st_mode & S_IXGRP)
-            perm[6] = 'x';
-        if (statbuf.st_mode & S_IROTH)
-            perm[7] = 'r';
-        if (statbuf.st_mode & S_IWOTH)
-            perm[8] = 'w';
-        if (statbuf.st_mode & S_IXOTH)
-            perm[9] = 'x';
-        linktarget[0] = '\0';
+		strcpy(perm, "----------");
+		if (S_ISDIR(statbuf.st_mode))
+			perm[0] = 'd';
+		if (statbuf.st_mode & S_IRUSR)
+			perm[1] = 'r';
+		if (statbuf.st_mode & S_IWUSR)
+			perm[2] = 'w';
+		if (statbuf.st_mode & S_IXUSR)
+			perm[3] = 'x';
+		if (statbuf.st_mode & S_IRGRP)
+			perm[4] = 'r';
+		if (statbuf.st_mode & S_IWGRP)
+			perm[5] = 'w';
+		if (statbuf.st_mode & S_IXGRP)
+			perm[6] = 'x';
+		if (statbuf.st_mode & S_IROTH)
+			perm[7] = 'r';
+		if (statbuf.st_mode & S_IWOTH)
+			perm[8] = 'w';
+		if (statbuf.st_mode & S_IXOTH)
+			perm[9] = 'x';
+		linktarget[0] = '\0';
 #ifdef S_ISLNK
-    }
+	}
 #endif
     memcpy(&filetime, localtime(&(statbuf.st_mtime)), sizeof(struct tm));
     time(&t);
     if (filetime.tm_year == localtime(&t)->tm_year)
-        mystrncpy(timestr, ctime(&(statbuf.st_mtime)) + 4, 12);
+    	mystrncpy(timestr, ctime(&(statbuf.st_mtime)) + 4, 12);
     else
         strftime(timestr, sizeof(timestr), "%b %d  %G", &filetime);
     mygetpwuid(statbuf.st_uid, passwdfile, uid)[8] = 0;
@@ -267,9 +242,9 @@ void bftpd_stat(char *name, FILE * client)
      */
     if (first_time)
     {
-        fprintf(client, "%s %3i %-8s %-8s 0 %s .\r\n", "drwxrwxrwx",
-                (int) 1, uid, gid,
-                timestr);
+    	fprintf(client, "%s %3i %-8s %-8s 0 %s .\r\n", "drwxrwxrwx",
+	    		(int) 1, uid, gid,
+			    timestr);
         first_time = 0;
     }
     /*  added end pling 06/28/2010 */
@@ -277,16 +252,16 @@ void bftpd_stat(char *name, FILE * client)
     /*  modified start pling 06/29/2009 */
     /* Show big file size (>4GB) correctly */
 #if 0
-    fprintf(client, "%s %3i %-8s %-8s %8lu %s %s%s\r\n", perm,
-            (int) statbuf.st_nlink, uid, gid,
-            (unsigned long) statbuf.st_size,
-            timestr, name, linktarget);
+	fprintf(client, "%s %3i %-8s %-8s %8lu %s %s%s\r\n", perm,
+			(int) statbuf.st_nlink, uid, gid,
+			(unsigned long) statbuf.st_size,
+			timestr, name, linktarget);
 #endif
     unsigned long long real_file_size = get_real_file_size(&statbuf);
-    fprintf(client, "%s %3i %-8s %-8s %llu %s %s%s\r\n", perm,
-            (int) statbuf.st_nlink, uid, gid,
-            (unsigned long long) real_file_size,
-            timestr, name, linktarget);
+	fprintf(client, "%s %3i %-8s %-8s %llu %s %s%s\r\n", perm,
+			(int) statbuf.st_nlink, uid, gid,
+			(unsigned long long) real_file_size,
+			timestr, name, linktarget);
     /*  modified end pling 06/29/2009 */
 }
 
@@ -309,29 +284,20 @@ void dirlist_one_file(char *name, FILE *client, char verbose)
     if (filename_index)
        filename_index++;   /* goto first character after '/' */
     else
-       filename_index = name;
+       filename_index = name;    
 
     if (lstat(name, (struct stat *) &statbuf) == -1) { // used for command_stat
        fprintf(client, "213-Error: %s.\n", strerror(errno));
        return;
     }
 
-
-    if(!is_shares(name))
-        return;
-
     /*  added start pling 06/20/2009 */
     /* Don't let 'guest' user see "Admin-read" folders */
-
-#if 1
-    if ((S_ISDIR(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
-        && ( strcmp(user, "admin") != 0 ) )
+    if (S_ISDIR(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
     {
           if (!is_dir_allow_read(name))
           return;
     }
-
-#endif
     /*  added end pling 06/20/2009 */
 
     if (verbose)
@@ -342,27 +308,26 @@ void dirlist_one_file(char *name, FILE *client, char verbose)
 
 void dirlist(char *name, FILE * client, char verbose)
 {
-    DIR *directory;
+	DIR *directory;
     char *cwd = NULL;
     int i;
-    glob_t globbuf;
-
+	glob_t globbuf;
     if ((strstr(name, "/.")) && strchr(name, '*'))
         return; /* DoS protection */
-    if ((directory = opendir(name))) {
-       closedir(directory);
+	if ((directory = opendir(name))) {
+	   closedir(directory);
            cwd = bftpd_cwd_getcwd();
            chdir(name);
            glob("*", 0, NULL, &globbuf);
-    } else
-           glob(name, 0, NULL, &globbuf);
+	} else
+    	   glob(name, 0, NULL, &globbuf);
 
-    for (i = 0; i < globbuf.gl_pathc; i++)
-        dirlist_one_file(globbuf.gl_pathv[i], client, verbose);
+	for (i = 0; i < globbuf.gl_pathc; i++)
+            dirlist_one_file(globbuf.gl_pathv[i], client, verbose);
 
-    globfree(&globbuf);
-    if (cwd) {
-       chdir(cwd);
-        free(cwd);
-    }
+	globfree(&globbuf);
+	if (cwd) {
+  	   chdir(cwd);
+		free(cwd);
+	}
 }

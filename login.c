@@ -77,17 +77,11 @@ extern char client_ip[32];
 /*
  ** check whether an IP address is in the LAN subnet
  **/
-
 int isLanSubnet(char *ipAddr)
 {
     long netAddr, netMask, netIp;
-#ifdef __OG2263__
-    netAddr = inet_addr(config_getoption ("BIND_TO_ADDR"));
-    netMask = inet_addr(config_getoption ("SUB_MASK"));
-#else
     netAddr = inet_addr(nvram_safe_get("lan_ipaddr"));
     netMask = inet_addr(nvram_safe_get("lan_netmask"));
-#endif
     netIp   = inet_addr(ipAddr);
     if ((netAddr & netMask) != (netIp & netMask))
     {
@@ -95,7 +89,6 @@ int isLanSubnet(char *ipAddr)
     }
     return TRUE;
 }
-
 
 void write_usb_access_log(void)
 {
@@ -128,22 +121,6 @@ void write_usb_fail_log(void)
 }
 /*  added end by Jenny Zhao, 06/10/2011 */
 
-#ifdef __OG2263__
-
-void write_usb_log(int failed)
-{
-
-    if (!g_isLanIp)
-    {
-        if (failed)
-            bftpd_log("port_fwd_tri;[USB remote access rejected] from %s through FTP\n",client_ip);
-        else
-            bftpd_log("port_fwd_tri;[USB remote access] from %s through FTP\n",client_ip);
-    }
-
-}
-
-#endif
 
 static char mount_path[128];
 int readOnlyOnPart1 = 0; //@ftpRW
@@ -156,7 +133,7 @@ static void scanPartitons()
 //===================================
 // parse /proc/mounts
 // format:
-// /dev/sdb1 /mnt/share/usb1/part1 vfat rw,sync 0 0
+// /dev/sdb1 /mnt/share/usb1/part1 vfat rw,sync 0 0 
 //===================================
 
 
@@ -172,7 +149,7 @@ static void scanPartitons()
             {
                 break;
             }
-
+            
             fgets(line, 256, fp);
             if (strncmp(line, "/dev/sd", 7) == 0)
             {
@@ -195,18 +172,18 @@ static void scanPartitons()
                     if(!strstr(token,"w"))
                         readOnlyOnPart1 = 1;
 
-
+                    
                     break;
                 } //if token
-
+                
             }
         } //while 1 -> read lines in files
         fclose(fp);
     }
-    else
+    else 
     {
         fprintf(stderr, "open /porc/mount failed\n");
-    }
+    }   
 }
 /* szzz added end */
 
@@ -383,13 +360,9 @@ int bftpd_login (char *password)
             /*  added end, zacker, 09/13/2010, @chrome_login */
             else
             {
-                if ((strcasecmp(user,"none")) && (strcasecmp(user,"anonymous")))
-                {
-                    bftpd_log("[bftpd_login] user123:%s \n",user);
-                    control_printf (SL_FAILURE, "421 Login incorrect.");
-                    //printf ("%s(%d)\r\n", __FUNCTION__, __LINE__);
-                    exit (0);
-                }
+                control_printf (SL_FAILURE, "421 Login incorrect.");
+                //printf ("%s(%d)\r\n", __FUNCTION__, __LINE__);
+                exit (0);
             }
         }
 #endif
@@ -402,7 +375,7 @@ int bftpd_login (char *password)
         if (!home_directory)
         {
             if (!strcasecmp (anonymous, "yes"))
-                *home_directory = '/';
+                home_directory = "/";
             else
             {
                 control_printf (SL_FAILURE, "421 Authentication incorrect.");
@@ -475,16 +448,14 @@ int bftpd_login (char *password)
     {
 #ifndef NO_GETPWNAM
 /*  add start, Jasmine Yang, 09/12/2007 */
-        //if (checkuser () || checkshell ())
-#if 0
+        //if (checkuser () || checkshell ()) 
         if (checkuser ())
-/*  add end, Jasmine Yang, 09/12/2007 */
+/*  add end, Jasmine Yang, 09/12/2007 */        	
         {
             control_printf (SL_FAILURE, "421 Login incorrect.");
             //printf ("%s(%d)\r\n", __FUNCTION__, __LINE__);
             exit (0);
         }
-#endif
 #endif
     }
 
@@ -492,15 +463,8 @@ int bftpd_login (char *password)
     if (!file_auth[0])
     {
 #ifndef NO_GETPWNAM
-        if ((strcasecmp(user,"none")) && (strcasecmp(user,"anonymous")))
-        {
         if (checkpass (password))
-            {
-                //return 1;
-                control_printf (SL_FAILURE, "421 Login incorrect.");
-                exit(0);
-            }
-        }
+            return 1;
 #endif
     }
 
@@ -517,7 +481,6 @@ int bftpd_login (char *password)
         if (!str[0])
             strcpy (str, "%h");
         P1MSG("userinfo.pw_name=%s,userinfo.pw_dir=%s\r\n",  userinfo.pw_name, userinfo.pw_dir);
-        bftpd_log("userinfo.pw_name=%s,userinfo.pw_dir=%s\r\n",  userinfo.pw_name, userinfo.pw_dir);
         replace (str, "%u", userinfo.pw_name);
         strcpy(tmpBuf, userinfo.pw_dir);/*, water, 11/07/2008*/
         replace (str, "%h", userinfo.pw_dir);
@@ -527,7 +490,6 @@ int bftpd_login (char *password)
             groupfile = fopen ("/etc/group", "r");
         }
 
-        bftpd_log("[bftpd_login] [line 516]user:%s \n",user);
         setgid (userinfo.pw_gid);
         initgroups (userinfo.pw_name, userinfo.pw_gid);
         /*  add start, Jasmine Yang, 09/12/2007 */
@@ -536,19 +498,19 @@ int bftpd_login (char *password)
 
         /*  Add Start : Steve Hsieh : 01/22/2008, @ftpRW {*/
         /* -- should use shared dir in usb_setting page as root dir --*/
-
-        /* modified start, water, 11/07/2008,
+        
+        /* modified start, water, 11/07/2008, 
           I think it isn't a good solution, need further implement later*/
         //sprintf (chfolder, "%s/%s", mount_path, userinfo.pw_name);
         sprintf (chfolder, "%s%s", mount_path, tmpBuf);
         /* modified end, water, 11/07/2008, it isn't a good solution, need further implement*/
-
+        
         /*  Add End : Steve Hsieh : 01/22/2008, @ftpRW }*/
-
+        
         //water add temporarily, no usb now, it will be removed soon, @debug 05/30/2008
         //sprintf (chfolder, "/tmp");
-
-
+        
+        
         /*
         **  @ftpRW
         **  if readonly fs, just use the "/" as root dir
@@ -558,16 +520,16 @@ int bftpd_login (char *password)
         {
             /* zzz add. 12/11/2007 */
             //set ftp root to "/" if the mounted partition is read only
-            bftpd_log("partition 1 is readonly\n");
-            sprintf (chfolder, "%s", mount_path);
+            bftpd_log("partition 1 is readonly\n");    
+            sprintf (chfolder, "%s", mount_path); 
 
             printf("checking %s\n", mount_path);
 
             if (access(chfolder, R_OK|X_OK) == 0 )
             {
-                sprintf (chfolder, "%s", mount_path);
+                sprintf (chfolder, "%s", mount_path); 
             }
-            else
+            else 
             {
                 //zzz: Is this correct? Think twice??
             sprintf(chfolder, "/tmp/samba/share/%s", userinfo.pw_name);
@@ -587,26 +549,24 @@ int bftpd_login (char *password)
                 system(cmdx);
             }
         }
-
+        
         /*  modified start pling 05/14/2009 */
         /* Change rootdir to "/tmp" */
         //strcpy(str,chfolder );
-        //strcpy(str, "/tmp/media" );
         strcpy(str, "/tmp" );
         /*  modified end pling 05/14/2009 */
-    /*  added start by Jenny Zhao, 06/10/2011 @USB log */
+	/*  added start by Jenny Zhao, 06/10/2011 @USB log */
         /* In fact, we want to write USB remote access log after "230
-     * User logged in.". But the log file /dev/aglog can't be opened
-     * after chroot to "/tmp",we write log at here before do chroot
-     * function */
+	 * User logged in.". But the log file /dev/aglog can't be opened
+	 * after chroot to "/tmp",we write log at here before do chroot
+	 * function */
         write_usb_access_log();
-        write_usb_log(0);
         /*  added end by Jenny Zhao, 06/10/2011 */
 
         /*  add end, Jasmine Yang, 09/12/2007 */
         if (strcasecmp (config_getoption ("DO_CHROOT"), "no"))
         {
-            bftpd_log("change for ROOTDIR [%s]\n",str);
+            bftpd_log("change for ROOTDIR [%s]\n",chfolder);
             if (chroot (str))
             {
                 control_printf (SL_FAILURE,
@@ -695,9 +655,8 @@ int bftpd_login (char *password)
     bftpd_cwd_init ();
 
     /* a little clean up before we go */
-    if(home_directory)
-            free (home_directory);
-
+    if ((home_directory) && (strcmp (home_directory, "/")))
+        free (home_directory);
     return 0;
 }
 
@@ -710,20 +669,15 @@ int checkpass (char *password)
         return 1;
 #endif
 
-    bftpd_log("[checkpass] user:%s; password:%s \n",user,password);
     if (!strcasecmp (config_getoption ("ANONYMOUS_USER"), "yes"))
-    {
-        if ((!strcasecmp(user,"none")) || (!strcasecmp(user,"anonymous")))
-            return 0;
+        return 0;
 
-    }
 #ifdef WANT_PAM
     if (!strcasecmp (config_getoption ("AUTH"), "pam"))
         return checkpass_pam (password);
     else
 #endif
         return checkpass_pwd (password);
-        //return 0;
 }
 
 
@@ -746,19 +700,16 @@ int checkpass_pwd (char *password)
 #endif
 /*  add start, Jasmine Yang, 09/12/2007 */
     //if (strcmp(userinfo.pw_passwd, (char *) crypt(password, userinfo.pw_passwd))) {
-
+    
     P1MSG("%s(%d)userinfo.pw_passwd=%s , password=%s \r\n", __FUNCTION__,
             __LINE__, userinfo.pw_passwd, password);
 
-    bftpd_log("checkpass_pwd userinfo.pw_passwd=%s , password=%s\n",userinfo.pw_passwd, crypt(password, userinfo.pw_passwd));
-    if (strcmp (userinfo.pw_passwd, (char *) crypt(password, userinfo.pw_passwd)))
+    if (strcmp (userinfo.pw_passwd, password))
     {
 /*  add end, Jasmine Yang, 09/12/2007 */
 #ifdef HAVE_SHADOW_H
-        bftpd_log("checkpass_pwd user:%s\n",user);
         if (!(shd = getspnam (user)))
             return 1;
-        bftpd_log("checkpass_pwd userinfo.pw_passwd=%s , shd->sp_pwdp=%s\n",userinfo.pw_passwd, shd->sp_pwdp);
         if (strcmp (shd->sp_pwdp, (char *) crypt (password, shd->sp_pwdp)))
 #endif
             return 1;

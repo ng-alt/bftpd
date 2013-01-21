@@ -9,11 +9,6 @@ void bftpd_list_add(struct bftpd_list_element **list, void *data)
 {
 	struct bftpd_list_element *new = malloc(sizeof(struct bftpd_list_element));
 	struct bftpd_list_element *tmp = *list;
-
-	// jjw patch 4.2 memory err    
-	/* make sure "new" is a valid value to avoid segfault */
-	   if (! new)
-           return;
 	new->data = data;
 	new->next = NULL;
 	if (tmp) {

@@ -1,22 +1,11 @@
 # Generated automatically from Makefile.in by configure.
-VERSION=4.0
-CC?=gcc
-INSTALL=install
-#prefix=/usr
-CFLAGS=-g -O2 -DHAVE_CONFIG_H -Wall -I. -DVERSION=\"$(VERSION)\" -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DPREFIX=\"$(prefix)\" 
-LIBS= -lcrypt
-mandir=${prefix}/man
-sbindir=${exec_prefix}/sbin
-DESTDIR=
-DIRPAX=
-PAX=
 
 # pling added 04/27/2009
-#include ../config.mk
-#include ../config.in
+include ../config.mk
+include ../config.in
 
 VERSION=1.6.6
-CFLAGS += -O2 -DHAVE_CONFIG_H -DDEBUG -D__OG2263__ -Wall -I. -DVERSION=\"$(VERSION)\" -D_LARGEFILE_SOURCE -DQUICK_FIX_ISSUES -ULEAN
+CFLAGS += -O2 -DHAVE_CONFIG_H -Wall -I. -DVERSION=\"$(VERSION)\" -D_LARGEFILE_SOURCE -DQUICK_FIX_ISSUES -ULEAN
 all: bftpd
 LIBS= -lcrypt
 
@@ -32,23 +21,15 @@ bftpd: $(OBJS)
 	./mksources $(DIRPAX)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o bftpd
 
-install: all
-	mkdir -p $(INSTALLDIR)/sbin
-#	$(INSTALL) -g 0 -m 700 -o 0 bftpd $(INSTALLDIR)/sbin
-	$(INSTALL) -m 755 bftpd $(INSTALLDIR)/sbin
-#	mkdir -p $(DESTDIR)/$(mandir)/man8
-#	$(INSTALL) -g 0 -m 644 -o 0 bftpd.8 $(DESTDIR)/$(mandir)/man8
-	mkdir -p $(INSTALLDIR)/etc
-	[ -f $(INSTALLDIR)/etc/bftpd.conf ] || \
-		$(INSTALL) bftpd.conf $(INSTALLDIR)/etc
-	mkdir -p $(INSTALLDIR)/etc/log
-	touch $(INSTALLDIR)/etc/log/bftpd.log
-	chmod 644 $(INSTALLDIR)/etc/log/bftpd.log
-	mkdir -p $(INSTALLDIR)/etc/run/bftpd
-	chmod 755 $(INSTALLDIR)/etc/run/bftpd
-	$(STRIP) $(INSTALLDIR)/sbin/bftpd
+install:
+	$(STRIP) bftpd
+	#install -m 755 bftpd $(TARGETDIR)/bin
+	install -m 755 bftpd $(TARGETDIR)/usr/sbin
+	#$(STRIP) $(TARGETDIR)/bin/bftpd
+	#cp -af bftpd.conf $(INSTALL_DIR)/etc
+
 clean:
 	-rm -f bftpd $(OBJS) mksources.finished config.cache
-	rm -f $(INSTALLDIR)/bin/bftpd
-	#rm -f $(INSTALLDIR)/etc/bftpd.conf
+	rm -f $(TARGETDIR)/bin/bftpd
+	#rm -f $(TARGETDIR)/etc/bftpd.conf
 

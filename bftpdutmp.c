@@ -22,10 +22,7 @@ void bftpdutmp_init()
             return;
 
 	if ((!strcasecmp(filename, "none")) || (!filename[0]))
-	{
-		if(filename) free(filename);
 		return;
-	}
     /* First we have to create the file if it doesn't exist */
 
     bftpdutmp = fopen(filename, "a");
