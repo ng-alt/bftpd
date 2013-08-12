@@ -709,24 +709,6 @@ void do_stor(char *filename, int flags)
 	gzFile my_zip_file = NULL;
 #endif
 
-	/* Foxconn added start pling 09/17/2013 */
-	/* Need to check null pointer */
-	if (!mapped)
-	{
-		bftpd_log("Memory error in storing file.\n");
-		control_printf(SL_FAILURE, "553 An unknown error occured on the server.");
-		return;
-	}
-
-	/* Don't allow upload files outside of /shares" */
-	if (strncmp(mapped, "/shares/", strlen("/shares/")) != 0)
-	{
-		bftpd_log("Tried to access files outside '/shares'!\n");
-		control_printf(SL_FAILURE, "550 Error: Access Denied.");
-		free(mapped);
-		return;
-	}
-	/* Foxconn added end pling 09/17/2013 */
 
     /* Foxconn, added by MJ., 2010.04.08, for check if file is locked. */
 #ifdef LOCK_DEBUG
@@ -1142,17 +1124,6 @@ void command_retr(char *filename)
 		control_printf(SL_FAILURE, "553 An unknown error occured on the server.", 9);
 		return;
 	}
-
-	/* Foxconn added start pling 09/17/2013 */
-	/* Don't allow download files outside of /shares" */
-	if (strncmp(mapped, "/shares/", strlen("/shares/")) != 0)
-	{
-		bftpd_log("Tried to access files outside '/shares'!\n");
-		control_printf(SL_FAILURE, "553 No such file or directory.");
-		free(mapped);
-		return;
-	}
-	/* Foxconn added end pling 09/17/2013 */
 
     /* Foxconn added start pling 06/07/2010 */
     /* BTS-A20102624: Chrome FTP fix: 
