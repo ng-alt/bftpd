@@ -17,8 +17,15 @@ long bftpdutmp_offset = 0xFFFFFFFF;
 void bftpdutmp_init()
 {
 	char *filename = strdup(config_getoption("PATH_BFTPDUTMP"));
+
+        if (! filename)
+            return;
+
 	if ((!strcasecmp(filename, "none")) || (!filename[0]))
+	{
+		if(filename) free(filename);
 		return;
+	}
     /* First we have to create the file if it doesn't exist */
 
     bftpdutmp = fopen(filename, "a");
@@ -31,6 +38,8 @@ void bftpdutmp_init()
         exit(1);
     }
     rewind(bftpdutmp);
+    // clean up memory
+    free(filename);
 }
 
 void bftpdutmp_end()

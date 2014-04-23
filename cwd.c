@@ -13,30 +13,86 @@
 
 char *cwd = NULL;
 
+extern int readyshareCloud_conn;
 int bftpd_cwd_chdir(char *dir)
 {
-	char *tmp = bftpd_cwd_mappath(dir);
-	if (chdir(tmp)) {
-		free(tmp);
-		return errno;
-	}
-	cwd = realloc(cwd, strlen(tmp) + 1);
-	strcpy(cwd, tmp);
-	new_umask();
-	free(tmp);
-	return 0;
+    char root_dir[] = "/shares/%s";
+    char convert_dir[1024];
+    if (strncmp(dir,"/media/media",strlen("/media/media"))==0)
+    {//jenny
+        if (chdir(dir))
+        {
+            dir = dir+strlen("/media");
+        }
+    }
+    char *tmp = bftpd_cwd_mappath(dir);
+
+    //bftpd_log("[bftpd_cwd_chdir] tmp: %s \n",tmp);
+    //if (readyshareCloud_conn)
+    {
+        if (strncmp(tmp, "/shares", 7))
+        {
+            free(tmp);
+            sprintf(convert_dir, root_dir, dir);
+            tmp = bftpd_cwd_mappath(convert_dir);
+            //bftpd_log("[bftpd_cwd_chdir] tmp3: %s \n",tmp);
+        }
+    }
+    //bftpd_log("[bftpd_cwd_chdir] tmp2: %s \n",tmp);
+    /*  added start pling 05/14/2009 */
+
+    /* Sanity check, don't allow user to get outside of the /shares  */
+    if (strlen(tmp) == 0 || strcmp(tmp, "/") == 0) {
+        free(tmp);
+        errno = EACCES;
+        return -1;
+    }
+    /*  added end pling 05/14/2009 */
+    if (strncmp(tmp, "/shares", 7)) {
+        bftpd_log("Block cwd to '%s'\n", tmp);
+        free(tmp);
+        errno = EACCES;
+        return -1;
+    }
+
+    if (chdir(tmp)) {
+        free(tmp);
+        return errno;
+    }
+    cwd = realloc(cwd, strlen(tmp) + 1);
+
+    //jjw patch from 4.2 mem err
+    if (! cwd)
+    {
+        free(tmp);
+        return -1;
+    }
+
+    strcpy(cwd, tmp);
+    new_umask();
+    free(tmp);
+    return 0;
 }
 
 char *bftpd_cwd_getcwd()
 {
-	return strdup(cwd);
+    //jjw patch from 4.2 mem err
+#if 1
+    if (cwd)
+    return strdup(cwd);
+    else
+        return NULL;
+#else
+
+    return strdup(cwd);
+#endif
 }
 
 void appendpath(char *result, char *tmp)
 {
-	if (!strcmp(tmp, "."))
-		return;
-	if (!strcmp(tmp, "..")) {
+    if (!strcmp(tmp, "."))
+        return;
+    if (!strcmp(tmp, "..")) {
         if (strcmp(result, "/")) {
             if (result[strlen(result) - 1] == '/')
                 result[strlen(result) - 1] = '\0';
@@ -47,44 +103,63 @@ void appendpath(char *result, char *tmp)
             if ((result[strlen(result) - 1] == '/') && (strlen(result) > 1))
                 result[strlen(result) - 1] = '\0';
         }
-	} else {
-		if (result[strlen(result) - 1] != '/')
-			strcat(result, "/");
-		strcat(result, tmp);
-	}
+    } else {
+        if (result[strlen(result) - 1] != '/')
+            strcat(result, "/");
+        strcat(result, tmp);
+    }
 }
+
+
 
 char *bftpd_cwd_mappath(char *path)
 {
-	char *result = malloc(strlen(path) + strlen(cwd) + 16);
-	char *path2 = strdup(path);
-	char *tmp;
-	if (path[0] == '/')
-		strcpy(result, "/");
-	else
-		strcpy(result, cwd);
-	while (strchr(path2, '/')) {
-		tmp = strdup(path2);
-		*strchr(tmp, '/') = '\0';
-		cutto(path2, strlen(tmp) + 1);
-		appendpath(result, tmp);
-		free(tmp);
-	}
-	appendpath(result, path2);
-	free(path2);
-	return result;
+    char *result = malloc(strlen(path) + strlen(cwd) + 16);
+    char *path2;
+    char *tmp;
+
+        if (! result)
+           return NULL;
+        path2 = strdup(path);
+        if (! path2)
+        {
+           free(result);
+           return NULL;
+        }
+
+    if (path[0] == '/')
+        strcpy(result, "/");
+    else
+        strcpy(result, cwd);
+
+    while (strchr(path2, '/'))
+    {
+        tmp = strdup(path2);
+
+        //jjw patch from 4.2 mem err
+        if (tmp)
+        {
+            *strchr(tmp, '/') = '\0';
+            cutto(path2, strlen(tmp) + 1);
+            appendpath(result, tmp);
+            free(tmp);
+        }
+    }
+    appendpath(result, path2);
+    free(path2);
+    return result;
 }
 
 void bftpd_cwd_init()
 {
-	cwd = malloc(256);
-	getcwd(cwd, 255);
+    cwd = malloc(256);
+    getcwd(cwd, 255);
 }
 
 void bftpd_cwd_end()
 {
-	if (cwd) {
-		free(cwd);
-		cwd = NULL;
-	}
+    if (cwd) {
+        free(cwd);
+        cwd = NULL;
+    }
 }

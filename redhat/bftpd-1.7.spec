@@ -1,5 +1,5 @@
 %define    name    bftpd
-%define    version 1.5
+%define    version 1.7
 %define    release 1
 %define    prefix  /usr
 
@@ -41,6 +41,8 @@ rm -rf "$RPM_BUILD_ROOT"
 %{prefix}/share/man/man8/bftpd.8
 
 %changelog
+* Mon Jan 1 2007 Joe Klemmer <joe@webtrek.com>
+- updated the version number.
 * Mon Jan 9 2006 Joe Klemmer <joe@webtrek.com>
 - added defined variables to the top of the file.
 - set the config file in the %files section so it won't

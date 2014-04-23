@@ -50,6 +50,7 @@ void command_type(char *);
 void command_port(char *);
 void command_stor(char *);
 void command_mget(char *);
+void command_mput(char *);
 void command_retr(char *);
 void command_list(char *);
 void command_syst(char *);
@@ -79,4 +80,9 @@ struct command {
 /* File the size of the transfer buffer, divided by number of connetions */
 int get_buffer_size(int num_connections);
 
+/* Function which forks and runs a script. Returns TRUE on success
+and FALSE on failure. */
+int run_script(char *script, char *path);
+
 #endif
+

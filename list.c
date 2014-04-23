@@ -3,10 +3,17 @@
 
 #include "list.h"
 
+int cur_conn = 0;
+
 void bftpd_list_add(struct bftpd_list_element **list, void *data)
 {
 	struct bftpd_list_element *new = malloc(sizeof(struct bftpd_list_element));
 	struct bftpd_list_element *tmp = *list;
+
+	// jjw patch 4.2 memory err    
+	/* make sure "new" is a valid value to avoid segfault */
+	   if (! new)
+           return;
 	new->data = data;
 	new->next = NULL;
 	if (tmp) {
@@ -15,6 +22,7 @@ void bftpd_list_add(struct bftpd_list_element **list, void *data)
 		tmp->next = new;
 	} else
 		*list = new;
+	cur_conn++;
 }
 
 void bftpd_list_del(struct bftpd_list_element **list, int index)
@@ -36,6 +44,7 @@ void bftpd_list_del(struct bftpd_list_element **list, int index)
 		tmp->next = tmp->next->next;
 		free(tmp2);
 	}
+	cur_conn--;
 }
 
 int bftpd_list_count(struct bftpd_list_element *list)

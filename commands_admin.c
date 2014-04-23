@@ -26,6 +26,10 @@ void loginfailed()
 {
     control_printf(SL_FAILURE, "421 Login incorrect.");
     bftpd_log("Administrative login FAILED\n");
+    /*  added start by Jenny Zhao, 06/10/2011 @USB log */
+    write_usb_fail_log();
+    write_usb_log(1);
+    /*  added end by Jenny Zhao, 06/10/2011 */
     exit(1);
 }
 
@@ -134,32 +138,32 @@ const struct admin_command admin_commands[] = {
     {"ADMIN_WHO", command_adminwho},
     {"ADMIN_KICK", command_adminkick},
     {"ADMIN_QUIT", command_adminquit},
-	{NULL, NULL}
+    {NULL, NULL}
 };
 
 int admin_parsecmd(char *str)
 {
-	int i;
-	char *p, *pp;
-	str[strlen(str) - 2] = '\0';	/* Remove \r\n */
-	p = pp = str;			/* Remove garbage in the string */
-	while (*p)
-		if ((unsigned char) *p < 32)
-			p++;
-		else
-			*pp++ = *p++;
-	*pp++ = 0;
-	for (i = 0; admin_commands[i].name; i++) {	/* Parse command */
-		if (!strncasecmp(str, admin_commands[i].name, strlen(admin_commands[i].name))) {
-			cutto(str, strlen(admin_commands[i].name));
-			p = str;
-			while ((*p) && ((*p == ' ') || (*p == '\t')))
-				p++;
-			memmove(str, p, strlen(str) - (p - str) + 1);
-			admin_commands[i].function(str);
-			return 0;
-		}
-	}
-	control_printf(SL_FAILURE, "500 Unknown command: \"%s\"", str);
-	return 1;
+    int i;
+    char *p, *pp;
+    str[strlen(str) - 2] = '\0';    /* Remove \r\n */
+    p = pp = str;           /* Remove garbage in the string */
+    while (*p)
+        if ((unsigned char) *p < 32)
+            p++;
+        else
+            *pp++ = *p++;
+    *pp++ = 0;
+    for (i = 0; admin_commands[i].name; i++) {  /* Parse command */
+        if (!strncasecmp(str, admin_commands[i].name, strlen(admin_commands[i].name))) {
+            cutto(str, strlen(admin_commands[i].name));
+            p = str;
+            while ((*p) && ((*p == ' ') || (*p == '\t')))
+                p++;
+            memmove(str, p, strlen(str) - (p - str) + 1);
+            admin_commands[i].function(str);
+            return 0;
+        }
+    }
+    control_printf(SL_FAILURE, "500 Unknown command: \"%s\"", str);
+    return 1;
 }

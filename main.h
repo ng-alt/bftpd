@@ -25,6 +25,12 @@ extern int alarm_type;
 char *configpath;
 int daemonmode;
 
+/* scripts to run before and after writing to the file system */
+char *pre_write_script;
+char *post_write_script;
+
+
 void print_file(int number, char *filename);
 
+#define MAX_CONN 15
 #endif

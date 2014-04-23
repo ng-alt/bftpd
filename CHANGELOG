@@ -1,8 +1,66 @@
 This file contains all major changes made during the development of bftpd.
 The uppermost change is the newest one.
 
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6.6
+	- Perform memory allocation check in bftpd_cwd_mappath()
+	- Changed a strcmp() to strcasecmp() in command_retr function.
+	- Performed free(mapped) at end of command_retr.
+	- Performed memory checks and clean-up in various functions.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6.5
+	- The when using the FILE_AUTH option, the text
+	password file can contain anonymous users. That is,
+	users who do not require passwords. THIS IS DANGEROUS
+	ON MOST SYSTEMS. A entry with the password field set to
+	a * (star) does not require a password. See the
+	config file option FILE_AUTH for more information.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6.4
+	- Allow ANONYMOUS_USER config file option to be used with
+	the FILE_AUTH option. This basically allows anyone
+	to login to the system without a password if both
+	options are used!
+	- When a chroot fails during login the server will
+	no longer tell the client which directory it was trying
+	to chroot to.
+	- When the config.h file contains a definition for
+	NO_GETPWNAM then the getpwnam() function is not used.
+	Also, this forces the use of the FILE_AUTH option. If
+	NO_GETPWNAM is defined and FILE_AUTH is not used, all
+	connections are dropped.
+
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6.3
+	- Introduced option to over-ride the local/LAN
+	IP address assigned to the host computer. This
+	option takes a 4-number IP address in the format
+	of "127.0.3.101". See OVERRIDE_IP in bftpd.conf for
+	more information.
+	- Removed description-pak file from source tree.
+	- The options PRE_WRITE_SCRIPT and POST_WRITE_SCRIPT
+	have been added to the bftpd.conf file. These options
+	let you run scripts before and after any command writes
+	to the file system. Handy if you want to re-mount.
+	Please see the bftpd.conf file for details.
+
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6.2
+	- When using FILE_AUTH to login, check
+	DO_CHROOT option before performing
+	a chroot().
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6.1
+	- Removed code which uses sendfile().
+	The sendfile code appears to cause a
+	conflict on some systems when used
+	with 64-bit file size variables.
+
+Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.6
+	- Released bftpd without code changes, but
+	with updated Polish documentation.
+
 Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.5
-	- Added Polish documentation.
+	- Added Polish documentation to website.
 
 Jesse Smith <jessefrgsmith@yahoo.ca> -> 1.4.1
 	- Added ability to use a plain text file

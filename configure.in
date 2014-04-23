@@ -34,6 +34,7 @@ if test "$result" = "yes"; then
   LIBS="$LIBS -lcrypt"
 fi
 
+
 AC_HEADER_DIRENT
 AC_CHECK_HEADERS(paths.h)
 AC_CHECK_HEADERS(netinet/in.h)
@@ -50,7 +51,6 @@ AC_CHECK_HEADERS(arpa/inet.h)
 AC_CHECK_HEADERS(syslog.h)
 AC_CHECK_HEADERS(crypt.h)
 AC_CHECK_HEADERS(utmp.h)
-AC_CHECK_HEADERS(sys/sendfile.h)
 
 
 

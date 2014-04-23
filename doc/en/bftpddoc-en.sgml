@@ -8,7 +8,7 @@
 <author>
  <name>written by Max-Wilhelm Bruker <tt/&lt;brukie@gmx.net/&gt;</name>
 </author>
-<!--<date>$Id: bftpddoc-en.sgml,v 1.4 2001/08/31 18:56:13 brukie Exp $</date>-->
+<!--<date>$Id: bftpddoc-en.sgml,v 1.1 2007/04/16 12:02:21 mutalis Exp $</date>-->
 
 <abstract>
 This document is the documentation for the bftpd FTP server.
