@@ -26,9 +26,9 @@ void loginfailed()
 {
     control_printf(SL_FAILURE, "421 Login incorrect.");
     bftpd_log("Administrative login FAILED\n");
-    /*  added start by Jenny Zhao, 06/10/2011 @USB log */
+    /* Foxconn added start by Jenny Zhao, 06/10/2011 @USB log */
     write_usb_fail_log();
-    /*  added end by Jenny Zhao, 06/10/2011 */
+    /* Foxconn added end by Jenny Zhao, 06/10/2011 */
     exit(1);
 }
 

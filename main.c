@@ -59,6 +59,7 @@ GNU General Public License for more details.
 #include "list.h"
 
 #ifdef MAX_USB_ACCESS
+/* Foxconn, added by MJ., 2010.03.25, for making a shared memory. */
 #ifndef LINUX26
 #include <linux/spinlock.h>
 #endif
@@ -75,11 +76,15 @@ typedef struct
 
 static int segment_id;
 static CON_STATISTIC *con_st;
+/* Foxconn, ended by MJ., 2010.03.25, */
 
+/* Foxconn added start by Jenny Zhao, 06/10/2011 @USB log */
 char client_ip[32];
 int  g_isLanIp;
 
+/* Foxconn added end by Jenny Zhao, 06/10/2011 */
 
+/* Foxconn, added by MJ., 2010.03.25, for making a Semaphore. */
 
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -143,6 +148,7 @@ int binary_semaphore_post (int semid)
     operations[0].sem_flg = SEM_UNDO;
     return semop (semid, operations, 1);
 }
+/* Foxconn, ened by MJ., 2010.03.29 */
 #else
 char client_ip[32];
 int  g_isLanIp;
@@ -166,7 +172,7 @@ struct bftpd_list_element *child_list;
 char *configpath = PATH_BFTPD_CONF;
 int daemonmode = 0;
 
-int all_no_password = 0;
+int all_no_password = 0;		// Foxconn added pling 06/10/2009
 
 int inc_conn_num();
 int dec_conn_num();
@@ -191,6 +197,7 @@ void print_file (int number, char *filename)
 void end_child ()
 {
     printf("end_child invoked for child (%d).\n", getpid());
+    /* Foxconn, added by MJ., 2010.04.29, for connections counting. */
 /*    if(con_st != NULL)
     {
         binary_semaphore_wait(con_st->sem_id);
@@ -201,6 +208,7 @@ void end_child ()
                 con_st->num);
 #endif
     }*/
+    /* Foxconn, ended by MJ., 2010.04.29. */
 
     if (passwdfile)
         fclose (passwdfile);
@@ -220,9 +228,15 @@ void end_child ()
         close (1);
         close (2);
     }
+    
+    /* Foxconn added start pling 09/14/2013 */
+    /* This was done in SIGCHLD handler before.
+     * Now since we fork twice, we decrement counter here.
+     */
 #ifdef MAX_USB_ACCESS
     dec_conn_num();
 #endif
+    /* Foxconn added end pling 09/14/2013 */
 }
 
 
@@ -236,6 +250,7 @@ re-read parts of the config file.
 void handler_sighup (int sig)
 {
     bftpd_log("%s.\n", __FUNCTION__);
+    /* Foxconn, added by MJ., 2010.04.29, for connections counting. */
     /*if(con_st != NULL)
     {
         binary_semaphore_wait(con_st->sem_id);
@@ -246,6 +261,7 @@ void handler_sighup (int sig)
                 con_st->num);
 #endif
     }*/
+    /* Foxconn, ended by MJ., 2010.04.29. */
     bftpd_log ("Caught HUP signal. Re-reading config file.\n");
     Reread_Config_File ();
     signal (sig, handler_sighup);
@@ -293,13 +309,16 @@ void handler_sigchld (int sig)
 #endif
     }
 #endif // End of MAX_USB_ACCESS
+    /* Foxconn, ended by MJ., 2010.03.30. */
 
 
     /* Get the child's return code so that the zombie dies */
+	/*Foxconn modify start by Hank 10/01/2013*/
     // pid = wait (NULL);
     pid = waitpid(-1, NULL, WNOHANG);
     
     while (pid > 0)
+	/*Foxconn modify end by Hank 10/01/2013*/
     {
     	for (i = 0; i < bftpd_list_count (child_list); i++)
     	{
@@ -311,18 +330,21 @@ void handler_sigchld (int sig)
             free (childpid);
             /* make sure the child is removed from the log */
             bftpdutmp_remove_pid (pid);
-#ifdef MAX_USB_ACCESS
-	    			dec_conn_num();
+#ifdef MAX_USB_ACCESS	    
+	    dec_conn_num();
 #endif	    
         }
+		/*Foxconn modify start by Hank 10/01/2013*/
     	}
     	pid = waitpid(-1, NULL, WNOHANG);    /* check for more children */
+		/*Foxconn modify end by Hank 10/01/2013*/
   	}
 }
 
 void handler_sigterm (int signum)
 {
     bftpd_log ("%s.\n", __FUNCTION__);
+    /* Foxconn, added by MJ., 2010.04.29, for connections counting. */
 /*    if(con_st != NULL)
     {
 	binary_semaphore_wait(con_st->sem_id);
@@ -334,6 +356,7 @@ void handler_sigterm (int signum)
                con_st->num);
 #endif
     }*/
+    /* Foxconn, ended by MJ., 2010.04.29. */
 
 
     bftpdutmp_end ();
@@ -346,6 +369,7 @@ void handler_sigalrm (int signum)
     /* Log user out. -- Jesse <slicer69@hotmail.com> */
     bftpdutmp_end ();
 
+    /* Foxconn, added by MJ., 2010.03.30, for connections counting. */
 /*    if(con_st != NULL)
     {
         binary_semaphore_wait(con_st->sem_id);
@@ -355,6 +379,7 @@ void handler_sigalrm (int signum)
         printf("->total con num: %d, by bftpd\n", con_st->num);
 #endif
     }*/
+    /* Foxconn, ended by MJ., 2010.03.30. */
 
     if (alarm_type)
     {
@@ -419,6 +444,7 @@ int dec_conn_num()
         //cprintf("->total con num: %d, by bftpd\n", con_st->num);
 //#endif
     }
+    /* Foxconn, ended by MJ., 2010.03.30. */    
 }	
 
 int inc_conn_num ()
@@ -473,12 +499,15 @@ int main (int argc, char **argv)
     int retval;
     int over_limit = 0;
     socklen_t my_length;
-    FILE *pid_fp;
+    FILE *pid_fp;/* Foxconn add, Jasmine Yang, 09/13/2007 */
     extern int cur_conn;
 
     my_argv_list = argv;
     signal (SIGHUP, handler_sighup);
 
+    /* Foxconn, added by MJ., 2010.03.25, for count the totoal connections
+     * of accessing USB dir.
+     */
 #ifdef MAX_USB_ACCESS
     FILE *shmid_fp = fopen("/tmp/shm_id", "r");
     if(shmid_fp != NULL)
@@ -493,6 +522,7 @@ int main (int argc, char **argv)
         //exit(1);
     }
     /* attach the shared memory segment, at a different address. */
+	/*Foxconn modify start by Hank 10/01/2013*/
     if(segment_id != -1)
     {
         //con_st = (CON_STATISTIC*) shmat (segment_id, (void*) 0x5000000, 0);
@@ -511,10 +541,12 @@ int main (int argc, char **argv)
     }    
     else 
     {
+	/*Foxconn modify end by Hank 10/01/2013*/
         con_st = NULL;
 	printf ("fail to get shared memory reattached at address \n");
     }	
 #endif // End of MAX_USB_ACCESS
+    /*Foxconn, ended by MJ., 2010.03.25*/
 
 
 
@@ -560,6 +592,7 @@ int main (int argc, char **argv)
             setsid ();
             if (fork ())
                 return 0;
+/* Foxconn add start, Jasmine Yang, 09/13/2007 */
             if (!(pid_fp = fopen ("/var/run/bftpd.pid", "w")))
             {
                 perror ("/var/run/bftpd.pid");
@@ -567,6 +600,7 @@ int main (int argc, char **argv)
             }
             fprintf (pid_fp, "%d", getpid ());
             fclose (pid_fp);
+/* Foxconn add end, Jasmine Yang, 09/13/2007 */    
         }
         signal (SIGCHLD, handler_sigchld);
         
@@ -638,10 +672,13 @@ int main (int argc, char **argv)
 
 	    over_limit = 0;
 
+            /* Foxconn added start by Jenny Zhao, 06/13/2011 @USB log */
             strcpy(client_ip, inet_ntoa(new.sin_addr));
             g_isLanIp = isLanSubnet(client_ip);
+            /* Foxconn added end by Jenny Zhao, 06/13/2011 */
 
 #ifdef MAX_USB_ACCESS
+	    /* Foxconn, CSWang, limit 15 connection */
             /* printf("cur conn:%d %d\n", cur_conn, bftpd_list_count( &child_list) ); */
             if ( cur_conn > MAX_CON_NUM ) {
                  close(sock);
@@ -671,23 +708,26 @@ int main (int argc, char **argv)
              */
             if (sock > 0)
             {
+                /* Foxconn modified start pling 09/14/2013 */
+                /* Avoid zombie ftp process, by fork twice */
                 int pid2;
                 int status;
+
                 pid = fork ();
                 if (!pid)
                 {               /* child */
                     pid2 = fork();
                     if (!pid2)
-                {               /* child */
-                    close (0);
-                    close (1);
-                    close (2);
-                    isparent = 0;
-                    dup2 (sock, fileno (stdin));
-                    dup2 (sock, fileno (stderr));
-                    break;
-                }
-                else
+                    {
+                        close (0);
+                        close (1);
+                        close (2);
+                        isparent = 0;
+                        dup2 (sock, fileno (stdin));
+                        dup2 (sock, fileno (stderr));
+                        break;
+                    }
+                    else
                         exit(0);
                 }
                 else
@@ -712,6 +752,7 @@ int main (int argc, char **argv)
                         printf("child %d WSTOPSIG\n", pid);
                     if (WIFCONTINUED(status))
                         printf("child %d WIFCONTINUED\n", pid);
+
 #if 0   /* don't need to keep child pid anymore */
 		    tmp_pid = malloc (sizeof (struct bftpd_childpid));
                     tmp_pid->pid = pid;
@@ -722,15 +763,17 @@ int main (int argc, char **argv)
                         perror("waitpid");
                     close(sock); /* parent don't need this 'accept' socket, leave it to client */
 #ifdef MAX_USB_ACCESS		    
-		    inc_conn_num();
+		            inc_conn_num();
 #endif
-	         }		
-             }
+	            }		
+            }
+            /* Foxconn modified end pling 09/14/2013 */
         }
     }
 
     /* Child only. From here on... */
 
+    //Foxconn modify, Jasmine Yang, 09/12/2007
     //devnull = fopen ("/dev/null", "w");
     devnull = fopen ("/dev/console", "w");
     global_argc = argc;
@@ -781,6 +824,7 @@ int main (int argc, char **argv)
 #endif
     }
 #endif // End of MAX_USB_ACCESS
+    /* Foxconn, ended by MJ., 2010.03.25 */
 
     //atexit (end_child);
     signal (SIGTERM, handler_sigterm);
@@ -850,6 +894,9 @@ int main (int argc, char **argv)
         remotehostname = strdup (inet_ntoa (remotename.sin_addr));
     bftpd_log ("Incoming connection from %s.\n", remotehostname);
     
+    /* Foxconn, added by MJ., 2010.03.25, for count the totoal connections 
+     * of accessing USB dir. 
+     */
     /*if(con_st != NULL)
     {
         binary_semaphore_wait(con_st->sem_id);
@@ -866,6 +913,7 @@ int main (int argc, char **argv)
         printf("->total con num: %d, by bftpd.\n", con_st->num);
 #endif
     }*/
+    /* Foxconn, ended by MJ., 2010.03.25 */
 
 
     bftpd_statuslog (1, 0, "connect %s", remotehostname);
@@ -886,6 +934,7 @@ int main (int argc, char **argv)
     }
     replace (str, "%i", (char *) inet_ntoa (name.sin_addr));
 
+	/* Foxconn modified start pling 06/10/2009*/
 	/* If all shared folders are 'All - no password',
 	 * then no need to login for "FTP",
 	 * by auto-login as user 'guest'.
@@ -895,11 +944,12 @@ int main (int argc, char **argv)
 	if (fp != NULL)
 	{
 		fclose(fp);
-		command_user("no_pass");
+		command_user("guest");
 		all_no_password = 1;
 	}
 	else
 		control_printf (SL_SUCCESS, "220 %s", str);
+	/* Foxconn modified end pling 06/10/2009*/
 
     /* We might not get any data, so let's set an alarm before the
        first read. -- Jesse <slicer69@hotmail.com> */
@@ -928,6 +978,7 @@ int main (int argc, char **argv)
 exit:
     //    printf("->total con num: %d, by bftpd\n", con_st->num);
     //}
+    /* Foxconn, ended by MJ., 2010.03.25 */
 
     return 0;
 }

@@ -13,11 +13,15 @@
 
 char *cwd = NULL;
 
-extern int readyshareCloud_conn;    
+extern int readyshareCloud_conn;    /* pling added 10/08/2012 */
+
 int bftpd_cwd_chdir(char *dir)
 {
+	/* Foxconn added start pling 10/08/2012 */
 	char root_dir[] = "/shares/%s";
 	char convert_dir[1024];
+	/* Foxconn added end pling 10/08/2012 */
+
     if (strncmp(dir,"/shares/shares",strlen("/shares/shares"))==0)
     {//jenny
         if (chdir(dir))
@@ -27,6 +31,8 @@ int bftpd_cwd_chdir(char *dir)
     }
 	char *tmp = bftpd_cwd_mappath(dir);
 
+	/* Foxconn added start pling 10/08/2012 */
+	/* Handle ReadyShare Cloud connections specially */
 	if (readyshareCloud_conn)
 	{
 		if (strncmp(tmp, "/shares", 7))
@@ -36,20 +42,32 @@ int bftpd_cwd_chdir(char *dir)
 			tmp = bftpd_cwd_mappath(convert_dir);
 		}
 	}
-	/*  added start pling 05/14/2009 */
+	/* Foxconn added end pling 10/08/2012 */
+
+	/* Foxconn added start pling 05/14/2009 */
 	/* Sanity check, don't allow user to get outside of the /shares  */
+	/* Foxconn modified start pling 09/17/2013 */
+	/* IE will have problem when sees 'access denied', so allow chdir to '/' */
 	if (strlen(tmp) == 0 /*|| strcmp(tmp, "/") == 0*/) {
+	/* Foxconn modified end pling 09/17/2013 */
 		free(tmp);
 		errno = EACCES;
 		return -1;
 	}
-	/*  added end pling 05/14/2009 */
+	/* Foxconn added end pling 05/14/2009 */
+
+	/* Foxconn added start pling 09/02/2012 */
+	/* WNDR4500v2 IR45/46/47, don't allow user to access outside /shares */
+	/* Foxconn modified start pling 09/17/2013 */
+	/* IE will have problem when sees 'access denied', so allow chdir to '/' */
 	if (strncmp(tmp, "/shares", 7) != 0 && strcmp(tmp, "/") != 0) {
 		free(tmp);
 		bftpd_log("Block cwd to '%s'\n", tmp);
 		errno = ENOENT; //EACCES;
 		return -1;
 	}
+	/* Foxconn modified end pling 09/17/2013 */
+	/* Foxconn added end pling 09/02/2012 */
 
 	if (chdir(tmp)) {
 		free(tmp);

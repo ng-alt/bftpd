@@ -14,7 +14,9 @@ OBJS=bftpdutmp.o commands.o commands_admin.o cwd.o dirlist.o list.o login.o logg
 SRCS=bftpdutmp.c commands.c commands_admin.c cwd.c dirlist.c list.c login.c logging.c main.c mystring.c options.c
 
 CFLAGS  += -I. -I$(TOP)/shared -I$(SRCBASE)/include -Wall
+CFLAGS  += -I../../acos/include
 LDFLAGS=-Wl,-allow-shlib-undefined
+
 LDFLAGS += -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 
 bftpd: $(OBJS)

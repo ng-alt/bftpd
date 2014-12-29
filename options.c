@@ -14,7 +14,8 @@ struct global config_global;
 struct group_of_users *config_groups;
 struct user *config_users;
 
-int readyshareCloud_conn = 0;	
+int readyshareCloud_conn = 0;	/* pling added 10/08/2012 */
+
 /*
 Returns NULL on error. May return
 emtpy string "" for empty or
@@ -151,8 +152,11 @@ void config_init()
 		control_printf(SL_FAILURE, "421 Unable to open configuration file.");
 		exit(1);
 	}
+	/* Foxconn added start pling 10/08/2012 */
+	/* Handle ReadyShare Cloud connections specially */
 	if (strstr(configpath, "rscloud"))
 		readyshareCloud_conn = 1;
+	/* Foxconn added end pling 10/08/2012 */
 	while ((str = config_read_line(configfile))) {
 		if (strchr(str, '{')) {
             replace(str, " {", "{");

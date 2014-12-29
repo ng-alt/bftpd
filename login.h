@@ -30,9 +30,9 @@ On failure it returns NULL.
 */ 
 char *check_file_password(char *my_file, char *check_user, char *check_password);
 
-/*  added start by Jenny Zhao, 06/10/2011 @USB log */
+/* Foxconn added start by Jenny Zhao, 06/10/2011 @USB log */
 extern void write_usb_access_log(void);
 extern void write_usb_fail_log(void);
-/*  added end by Jenny Zhao, 06/10/2011 */
+/* Foxconn added end by Jenny Zhao, 06/10/2011 */
 
 

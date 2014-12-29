@@ -68,8 +68,8 @@ char userinfo_set = 0;
   #define P1MSG(args...) fprintf(stderr, "%s-%04d: ", __FILE__, __LINE__) ; fprintf(stderr, ## args)
 #endif // NDEBUG
 
-/*  added start by Jenny Zhao, 06/10/2011 @USB log */
-#include "bcmnvram.h"
+/* Foxconn added start by Jenny Zhao, 06/10/2011 @USB log */
+#include <acosNvramConfig.h>
 #include <errno.h>
 extern int g_isLanIp;
 extern char client_ip[32];
@@ -80,8 +80,8 @@ extern char client_ip[32];
 int isLanSubnet(char *ipAddr)
 {
     long netAddr, netMask, netIp;
-    netAddr = inet_addr(nvram_safe_get("lan_ipaddr"));
-    netMask = inet_addr(nvram_safe_get("lan_netmask"));
+    netAddr = inet_addr(acosNvramConfig_get("lan_ipaddr"));
+    netMask = inet_addr(acosNvramConfig_get("lan_netmask"));
     netIp   = inet_addr(ipAddr);
     if ((netAddr & netMask) != (netIp & netMask))
     {
@@ -119,7 +119,7 @@ void write_usb_fail_log(void)
         }
     }
 }
-/*  added end by Jenny Zhao, 06/10/2011 */
+/* Foxconn added end by Jenny Zhao, 06/10/2011 */
 
 
 static char mount_path[128];
@@ -337,8 +337,8 @@ int bftpd_login (char *password)
     char *file_auth;            /* if used, points to file used to auth users */
     char *home_directory = NULL;        /* retrieved from auth_file */
     char *anonymous = NULL;
-    char chfolder [256]=""; /*  add, Jasmine Yang, 09/12/2007 */
-    char tmpBuf[256] = "";/*, water, 11/07/2008*/
+    char chfolder [256]=""; /* Foxconn add, Jasmine Yang, 09/12/2007 */
+    char tmpBuf[256] = "";/*foxconn, water, 11/07/2008*/
 
     P1MSG("%s(%d)\r\n", __FUNCTION__, __LINE__);
     str[0] = '\0';              /* avoid garbage in str */
@@ -350,14 +350,14 @@ int bftpd_login (char *password)
 #ifndef NO_GETPWNAM
         if (!getpwnam (user))
         {
-            /*  added start, zacker, 09/13/2010, @chrome_login */
+            /* foxconn added start, zacker, 09/13/2010, @chrome_login */
             if (strcasecmp (config_getoption ("ANONYMOUS_USER"), "yes")
                 && !strcasecmp (user, "anonymous"))
             {
                 control_printf (SL_FAILURE, "530 Sorry, no ANONYMOUS access allowed.");
                 return 0; /* STATE_USER, for later command 'QUIT' handling */
             }
-            /*  added end, zacker, 09/13/2010, @chrome_login */
+            /* foxconn added end, zacker, 09/13/2010, @chrome_login */
             else
             {
                 control_printf (SL_FAILURE, "421 Login incorrect.");
@@ -447,10 +447,10 @@ int bftpd_login (char *password)
     if (!file_auth[0])
     {
 #ifndef NO_GETPWNAM
-/*  add start, Jasmine Yang, 09/12/2007 */
+/* Foxconn add start, Jasmine Yang, 09/12/2007 */
         //if (checkuser () || checkshell ()) 
         if (checkuser ())
-/*  add end, Jasmine Yang, 09/12/2007 */        	
+/* Foxconn add end, Jasmine Yang, 09/12/2007 */        	
         {
             control_printf (SL_FAILURE, "421 Login incorrect.");
             //printf ("%s(%d)\r\n", __FUNCTION__, __LINE__);
@@ -482,7 +482,7 @@ int bftpd_login (char *password)
             strcpy (str, "%h");
         P1MSG("userinfo.pw_name=%s,userinfo.pw_dir=%s\r\n",  userinfo.pw_name, userinfo.pw_dir);
         replace (str, "%u", userinfo.pw_name);
-        strcpy(tmpBuf, userinfo.pw_dir);/*, water, 11/07/2008*/
+        strcpy(tmpBuf, userinfo.pw_dir);/*foxconn, water, 11/07/2008*/
         replace (str, "%h", userinfo.pw_dir);
         if (!strcasecmp (config_getoption ("RESOLVE_UIDS"), "yes"))
         {
@@ -492,20 +492,20 @@ int bftpd_login (char *password)
 
         setgid (userinfo.pw_gid);
         initgroups (userinfo.pw_name, userinfo.pw_gid);
-        /*  add start, Jasmine Yang, 09/12/2007 */
+        /* Foxconn add start, Jasmine Yang, 09/12/2007 */
         scanPartitons(); //zzz, get first partition, 12/11/2007
         /* Make sure the login folder is user's account name */
 
-        /*  Add Start : Steve Hsieh : 01/22/2008, @ftpRW {*/
+        /* Foxconn Add Start : Steve Hsieh : 01/22/2008, @ftpRW {*/
         /* -- should use shared dir in usb_setting page as root dir --*/
         
-        /* modified start, water, 11/07/2008, 
+        /*foxconn modified start, water, 11/07/2008, 
           I think it isn't a good solution, need further implement later*/
         //sprintf (chfolder, "%s/%s", mount_path, userinfo.pw_name);
         sprintf (chfolder, "%s%s", mount_path, tmpBuf);
-        /* modified end, water, 11/07/2008, it isn't a good solution, need further implement*/
+        /*foxconn modified end, water, 11/07/2008, it isn't a good solution, need further implement*/
         
-        /*  Add End : Steve Hsieh : 01/22/2008, @ftpRW }*/
+        /* Foxconn Add End : Steve Hsieh : 01/22/2008, @ftpRW }*/
         
         //water add temporarily, no usb now, it will be removed soon, @debug 05/30/2008
         //sprintf (chfolder, "/tmp");
@@ -550,20 +550,20 @@ int bftpd_login (char *password)
             }
         }
         
-        /*  modified start pling 05/14/2009 */
+        /* Foxconn modified start pling 05/14/2009 */
         /* Change rootdir to "/tmp" */
         //strcpy(str,chfolder );
         strcpy(str, "/tmp" );
-        /*  modified end pling 05/14/2009 */
-	/*  added start by Jenny Zhao, 06/10/2011 @USB log */
+        /* Foxconn modified end pling 05/14/2009 */
+	/* Foxconn added start by Jenny Zhao, 06/10/2011 @USB log */
         /* In fact, we want to write USB remote access log after "230
 	 * User logged in.". But the log file /dev/aglog can't be opened
 	 * after chroot to "/tmp",we write log at here before do chroot
 	 * function */
         write_usb_access_log();
-        /*  added end by Jenny Zhao, 06/10/2011 */
+        /* Foxconn added end by Jenny Zhao, 06/10/2011 */
 
-        /*  add end, Jasmine Yang, 09/12/2007 */
+        /* Foxconn add end, Jasmine Yang, 09/12/2007 */
         if (strcasecmp (config_getoption ("DO_CHROOT"), "no"))
         {
             bftpd_log("change for ROOTDIR [%s]\n",chfolder);
@@ -698,7 +698,7 @@ int checkpass_pwd (char *password)
 #ifdef HAVE_SHADOW_H
     struct spwd *shd;
 #endif
-/*  add start, Jasmine Yang, 09/12/2007 */
+/* Foxconn add start, Jasmine Yang, 09/12/2007 */
     //if (strcmp(userinfo.pw_passwd, (char *) crypt(password, userinfo.pw_passwd))) {
     
     P1MSG("%s(%d)userinfo.pw_passwd=%s , password=%s \r\n", __FUNCTION__,
@@ -706,7 +706,7 @@ int checkpass_pwd (char *password)
 
     if (strcmp (userinfo.pw_passwd, password))
     {
-/*  add end, Jasmine Yang, 09/12/2007 */
+/* Foxconn add end, Jasmine Yang, 09/12/2007 */
 #ifdef HAVE_SHADOW_H
         if (!(shd = getspnam (user)))
             return 1;

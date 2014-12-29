@@ -84,7 +84,7 @@ void control_printf(char success, char *format, ...)
 	va_start(val, format);
 	vsnprintf(buffer, sizeof(buffer), format, val);
 	va_end(val);
-    /*  modified start pling 06/29/2010 */
+    /* Foxconn modified start pling 06/29/2010 */
     /* Fix Chrome V4.0.249.78 FTP issue: the \r\n needs to appear
      *  immediately after the response.
      */
@@ -93,7 +93,7 @@ void control_printf(char success, char *format, ...)
 #endif
     strcat(buffer, "\r\n");
 	fprintf(stderr, "%s", buffer);
-    /*  modified end pling 06/29/2010 */
+    /* Foxconn modified end pling 06/29/2010 */
 	replace(buffer, "\r", "");
 	bftpd_statuslog(3, success, "%s", buffer);
 }
@@ -125,17 +125,17 @@ void prepare_sock(int sock)
 	setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, (void *) &on, sizeof(on));
 #endif
 #ifdef SO_SNDBUF
-/*  modified start, Jonathan 10/14/2011 */
+/* Foxconn modified start, Jonathan 10/14/2011 */
 #if 1
 	/* because open 15 sessions to downlod that caused system crash, set smaller sending buffer */
 	on = 1024*128;
 #else
 	on = 1024*1024*4; /* wklin modified, 11/19/2009 */
 #endif
-/*  modified end, Jonathan 10/14/2011 */
+/* Foxconn modified end, Jonathan 10/14/2011 */
 	setsockopt(sock, SOL_SOCKET, SO_SNDBUF, (void *) &on, sizeof(on));
 	on = 65536*10; /* wklin modified, 11/19/2009 */
-	setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (void *) &on, sizeof(on));  //  added pling 06/19/2009 
+	setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (void *) &on, sizeof(on));  // Foxconn added pling 06/19/2009 
 #endif
 }
 
@@ -204,7 +204,7 @@ void init_userinfo()
 }
 
 /**
- * ,start by cliff wang @ checking remote access for log
+ * foxconn,start by cliff wang @ checking remote access for log
  * */
 #if 0
 int isLanSubnet(char *ipAddr, char *lan_addr, char *lan_mask)
@@ -295,48 +295,36 @@ void fifo_write(char *buf)
 #endif
 
 /*
- * ,end by cliff wang @ checking remote access for log
+ * foxconn,end by cliff wang @ checking remote access for log
  * **/
 
-void command_user(char *login_username)
+void command_user(char *username)
 {
 	char *alias;
 	
-	/*  addedd start pling 06/10/2009*/
+	/* Foxconn addedd start pling 06/10/2009*/
 	/* If all shared folders are 'All - no password',
 	 * then no need to login for "FTP".
 	 * Also, take care of duplicate login.
 	 */
 	extern int all_no_password;
-  char username[256];
-  int welcome_message=0;
+        	
 	char modified_user[] = "guest";
-  
-  if(strcmp(login_username,"no_pass")==0)
-  {
-      strcpy(username,"guest");
-      welcome_message=1;
-	}
-	else
-      strcpy(username,login_username);
-		
 
 	//if ( strlen(username) != 0 && strcmp(username, "admin") != 0 ) {
-	if (all_no_password && (strcasecmp(config_getoption("ADMIN_PROTECT"), "yes"))) 
-  {
+	if (all_no_password) {
 		if (strcmp(user, "guest") ) {
 			/* first time */
-			strcpy(username,modified_user);
+			username = modified_user;
 		} else {
 			/* duplicate login */
-			write_usb_access_log();
 			control_printf (SL_SUCCESS, "230 User logged in.");
+			write_usb_access_log();
 			return;
-
 		}
 	}
-        /* , cliff wang, remove for 2nd login browser using anonymous user first */	
-	/* , cliffwang, router spec 2.0, any account can access
+        /* foxconn, cliff wang, remove for 2nd login browser using anonymous user first */	
+	/* Foxconn, cliffwang, router spec 2.0, any account can access
 	 * * non-amdin folder
 	 * * */
 	else if ( strlen(username) != 0 && strcmp(username, "anonymous") == 0 ) {
@@ -345,7 +333,7 @@ void command_user(char *login_username)
                 return;
         }
 
-	/*  added end pling 06/10/2009*/	
+	/* Foxconn added end pling 06/10/2009*/	
 #if 0	
 	if (state) {
 		// control_printf(SL_FAILURE, "503 Username already given.");
@@ -364,21 +352,18 @@ void command_user(char *login_username)
 	bftpd_log("Trying to log in as %s.\n", user);
 #endif
 	expand_groups();
-	if (!strcasecmp(config_getoption("ANONYMOUS_USER"), "yes") && (strcasecmp(config_getoption("ADMIN_PROTECT"), "yes")))
+	if (!strcasecmp(config_getoption("ANONYMOUS_USER"), "yes"))
 		bftpd_login("");
 	else {
 		state = STATE_USER;
-    if(welcome_message)
-      control_printf(SL_SUCCESS, "220 Welcome.");
-    else
-      control_printf(SL_SUCCESS, "331 Password please.");
+		control_printf(SL_SUCCESS, "331 Password please.");
 	}
 }
 
 void command_pass(char *password)
 {
         /*
-	 * , added by cliff wang @ for logging usb access for ftp 
+	 * Foxconn, added by cliff wang @ for logging usb access for ftp 
 	 * */
         char tmpStr[64];
         //int bIsLanIP = check_ip_info_by_name("br0");	
@@ -705,7 +690,7 @@ void command_mput(char *filenames)
 }
 
 
-#define MAX_BUFFER_SIZE     (4*65536)       //  added pling 06/19/2009 /* wklin modified */
+#define MAX_BUFFER_SIZE     (4*65536)       // Foxconn added pling 06/19/2009 /* wklin modified */
 void do_stor(char *filename, int flags)
 {
 	char *buffer;
@@ -724,6 +709,7 @@ void do_stor(char *filename, int flags)
 	gzFile my_zip_file = NULL;
 #endif
 
+	/* Foxconn added start pling 09/17/2013 */
 	/* Need to check null pointer */
 	if (!mapped)
 	{
@@ -740,7 +726,9 @@ void do_stor(char *filename, int flags)
 		free(mapped);
 		return;
 	}
-    /* , added by MJ., 2010.04.08, for check if file is locked. */
+	/* Foxconn added end pling 09/17/2013 */
+
+    /* Foxconn, added by MJ., 2010.04.08, for check if file is locked. */
 #ifdef LOCK_DEBUG
     printf("%s begins.\n", __FUNCTION__);
 #endif
@@ -771,7 +759,7 @@ void do_stor(char *filename, int flags)
         }
         close(fd);
     }
-    /* , ended by MJ., 2010.04.09 */    
+    /* Foxconn, ended by MJ., 2010.04.09 */    
 
 
 	if (pre_write_script)
@@ -796,9 +784,9 @@ void do_stor(char *filename, int flags)
 	fd = open(mapped, O_RDONLY);
 	if (fd >= 0)  /* file exists */
 	{
-        /* FIXME: , commented by MJ., 2010.04.09, We have to do this before pre_write_script. */
+        /* FIXME: Foxconn, commented by MJ., 2010.04.09, We have to do this before pre_write_script. */
 #if 0
-        /*  added start pling 06/25/2009 */
+        /* Foxconn added start pling 06/25/2009 */
         /* Try to lock this file for write access.
          * If failed, don't allow write.
          */
@@ -821,7 +809,7 @@ void do_stor(char *filename, int flags)
 	    		return;
             }
         }
-        /*  added end pling 06/25/2009 */
+        /* Foxconn added end pling 06/25/2009 */
 #endif
 		/* close the file */
 		close(fd);
@@ -859,7 +847,7 @@ void do_stor(char *filename, int flags)
 			return;
 		}
 
-        /*  added start pling 06/25/2009 */
+        /* Foxconn added start pling 06/25/2009 */
         /* Lock this file for write access */
         struct flock lock;
         lock.l_type = F_WRLCK;
@@ -875,7 +863,7 @@ void do_stor(char *filename, int flags)
 			free(mapped);
 			return;
         }
-        /*  added end pling 06/25/2009 */
+        /* Foxconn added end pling 06/25/2009 */
 	}
 
 #ifdef HAVE_ZLIB_H
@@ -909,18 +897,18 @@ void do_stor(char *filename, int flags)
 	   -- Jesse
 	 */
 	num_clients = bftpdutmp_usercount("*");
-    /*  modified start pling 06/19/2009 */
+    /* Foxconn modified start pling 06/19/2009 */
     /* For better throughput performance */
 	// my_buffer_size = get_buffer_size(num_clients);
     my_buffer_size = MAX_BUFFER_SIZE; 
-    /*  modified end pling 06/19/2009 */
+    /* Foxconn modified end pling 06/19/2009 */
 
 	alarm(0);
-    /*  modified start pling 06/19/2009 */
+    /* Foxconn modified start pling 06/19/2009 */
     /* For better throughput performance */
 	// buffer = malloc(xfer_bufsize);
 	buffer = malloc(MAX_BUFFER_SIZE);
-    /*  modified end pling 06/19/2009 */
+    /* Foxconn modified end pling 06/19/2009 */
 	/* Check to see if we are out of memory. -- Jesse */
 	if (! buffer)
 	{
@@ -990,7 +978,7 @@ void do_stor(char *filename, int flags)
 #endif
 		if(! attempt_gzip)
 		{
-			/*  modify start, Max Ding, 06/09/2011 @IR-083 of WNR3500Lv2 */
+			/* Foxconn modify start, Max Ding, 06/09/2011 @IR-083 of WNR3500Lv2 */
 			/* IR-083: FTP write issue when drive is full
 			 * When USB disk is full, write will fail, 
 			 * Solution: Then should return error, and close socket and fd.
@@ -1012,7 +1000,7 @@ void do_stor(char *filename, int flags)
 					free(mapped);
 				return;
 			}
-			/*  modify end, Max Ding, 06/09/2011 */
+			/* Foxconn modify end, Max Ding, 06/09/2011 */
 		}
 
 		/* Check to see if our bandwidth usage should change. -- Jesse */
@@ -1155,6 +1143,7 @@ void command_retr(char *filename)
 		return;
 	}
 
+	/* Foxconn added start pling 09/17/2013 */
 	/* Don't allow download files outside of /shares" */
 	if (strncmp(mapped, "/shares/", strlen("/shares/")) != 0)
 	{
@@ -1163,7 +1152,9 @@ void command_retr(char *filename)
 		free(mapped);
 		return;
 	}
-    /*  added start pling 06/07/2010 */
+	/* Foxconn added end pling 09/17/2013 */
+
+    /* Foxconn added start pling 06/07/2010 */
     /* BTS-A20102624: Chrome FTP fix: 
      * handle the case where FTP client tries to access /shares/shares
      */
@@ -1176,7 +1167,7 @@ void command_retr(char *filename)
             mapped = bftpd_cwd_mappath(filename);
         }
     }
-    /*  added end pling 06/07/2010 */
+    /* Foxconn added end pling 06/07/2010 */
 
 	phile = open(mapped, O_RDONLY);
 	if (phile == -1) {       // failed to open a file
@@ -1227,7 +1218,7 @@ void command_retr(char *filename)
 	}
 #endif
 
-    /*  added start pling 06/25/2009 */
+    /* Foxconn added start pling 06/25/2009 */
     /* Place a read Lock on this file to prevent it
      *  from any other write access
     */
@@ -1239,7 +1230,7 @@ void command_retr(char *filename)
 
     fcntl(phile, F_GETLK, &lock);
 
-    /*  added by MJ., for file lock checking*/
+    /* Foxconn added by MJ., for file lock checking*/
 #ifdef LOCK_DEBUG
     printf("1.%s: l_type:%d\n", __FUNCTION__, lock.l_type);
 #endif
@@ -1255,9 +1246,9 @@ void command_retr(char *filename)
 		
         return;
     }
-    /*  ended by MJ., for file lock checking*/	
+    /* Foxconn ended by MJ., for file lock checking*/	
 
-    /*  added end pling 06/25/2009 */
+    /* Foxconn added end pling 06/25/2009 */
 
 	stat(mapped, (struct stat *) &statbuf);
 	if (S_ISDIR(statbuf.st_mode)) {
@@ -1511,7 +1502,7 @@ void command_retr(char *filename)
 					i += replace(buffer, "\n", "\r\n");
 				}
 				send_status = send(sock, buffer, i, 0);
-				/*  add start, Jonathan 10/14/2011 */
+				/* Foxconn add start, Jonathan 10/14/2011 */
 				/* add dropped connection condition checking ,patched from v3.1 */
                 if (send_status < 0)
                 {
@@ -1525,19 +1516,19 @@ void command_retr(char *filename)
                    bftpd_log("File transmission interrupted. Send failed.\n");
                    return;
                 }
-				/*  add end, Jonathan 10/14/2011 */
+				/* Foxconn add end, Jonathan 10/14/2011 */
 
 				bytes_sent += i;
 
 				new_num_clients = bftpdutmp_usercount("*");
-                /*  modified start pling 12/30/2009 */
+                /* Foxconn modified start pling 12/30/2009 */
                 /* Change these params only if num of clients is changed */
                 if (new_num_clients != num_clients)
                 {
                     num_clients = new_num_clients;
     				my_buffer_size = get_buffer_size(num_clients);
                 }
-                /*  modified end pling 12/30/2009 */
+                /* Foxconn modified end pling 12/30/2009 */
 
 				/* pause between transfers */
 				if (xfer_delay)
@@ -1580,6 +1571,8 @@ void do_dirlist(char *dirname, char verbose)
 		dirlist("*", datastream, verbose);
 	else {
 		char *mapped = bftpd_cwd_mappath(dirname);
+		/* Foxconn added start pling 09/03/2012 */
+		/* WNDR4500v2 IR45/46/47, don't allow user to access outside /shares */
 		if (strncmp(mapped, "/mnt/usb", 8) != 0 &&
 			strncmp(mapped, "/shares", 7)  != 0)
 		{
@@ -1590,6 +1583,7 @@ void do_dirlist(char *dirname, char verbose)
 			control_printf(SL_FAILURE, "550 Error: Access Denied.");
 			return;
 		}
+		/* Foxconn added end pling 09/03/2012 */
 		dirlist(mapped, datastream, verbose);
 		free(mapped);
 	}
@@ -1619,7 +1613,7 @@ void command_mdtm(char *filename)
 	struct tm *filetime;
 	char *fullfilename = bftpd_cwd_mappath(filename);
 
-    /*  added start pling 06/07/2010 */
+    /* Foxconn added start pling 06/07/2010 */
     /* BTS-A20102624: Chrome FTP fix: 
      * handle the case where FTP client tries to access /shares/shares
      */
@@ -1632,7 +1626,7 @@ void command_mdtm(char *filename)
             fullfilename = bftpd_cwd_mappath(filename);
         }
     }
-    /*  added end pling 06/07/2010 */
+    /* Foxconn added end pling 06/07/2010 */
 
 	if (!stat(fullfilename, (struct stat *) &statbuf)) {
 		filetime = gmtime((time_t *) & statbuf.st_mtime);
@@ -1650,7 +1644,7 @@ void command_mdtm(char *filename)
 void command_cwd(char *dir)
 {
 	if (bftpd_cwd_chdir(dir)) {
-		/*  modified start pling 05/14/2009 */
+		/* Foxconn modified start pling 05/14/2009 */
 		/* Deny access to root dir - '/' */
 		if (errno == EACCES) {
 			bftpd_log("Error: 'Not allowed to chdir to /'.\n");
@@ -1660,7 +1654,7 @@ void command_cwd(char *dir)
 					strerror(errno), dir);
 			control_printf(SL_FAILURE, "451 Error: %s.", strerror(errno));
 		}
-		/*  modified end pling 05/14/2009 */
+		/* Foxconn modified end pling 05/14/2009 */
 	} else {
 		bftpd_log("Changed directory to '%s'.\n", dir);
 		control_printf(SL_SUCCESS, "250 OK");
@@ -1679,7 +1673,7 @@ void command_dele(char *filename)
 	char *mapped = bftpd_cwd_mappath(filename);
 	int fd;
 
-    /* , added by MJ., 2010.07.07, for check if file is locked. */
+    /* Foxconn, added by MJ., 2010.07.07, for check if file is locked. */
 #ifdef LOCK_DEBUG
     printf("%s begins.\n", __FUNCTION__);
 #endif
@@ -1710,7 +1704,7 @@ void command_dele(char *filename)
         }
         close(fd);
     }
-    /* , ended by MJ., 2010.07.07 */
+    /* Foxconn, ended by MJ., 2010.07.07 */
 
 
 	if (pre_write_script)
@@ -1801,9 +1795,19 @@ void command_rnto(char *newname)
 	if (pre_write_script)
 		run_script(pre_write_script, mapped);
 
+	/* Foxconn added start pling 09/12/2012 */
+	/* WNDR4500v2 IR79: Don't allow user to rename /shares */
+	//if (strcmp(philename, "/shares") == 0)
+//		control_printf(SL_FAILURE, "550 Error: Access Denied.");
+//	else
+	/* Foxconn added end pling 09/12/2012 */
+	
+	/* Foxconn added start lawrence 09/14/2012 */
+	/* WNDR4500v2 IR84 and IR79: Don't allow user to rename file outside /shares */
 	if (strncmp(philename, "/shares/",8))
 		control_printf(SL_FAILURE, "550 Error: Access Denied.");
 	else
+	/* Foxconn added end lawrence 09/14/2012 */
 	if (rename(philename, mapped)) {
 		bftpd_log("Error: '%s' while trying to rename '%s' to '%s'.\n",
 				strerror(errno), philename, bftpd_cwd_mappath(newname));
@@ -1833,7 +1837,7 @@ void command_size(char *filename)
 	struct stat statbuf;
 	char *mapped = bftpd_cwd_mappath(filename);
 
-    /*  added start pling 06/07/2010 */
+    /* Foxconn added start pling 06/07/2010 */
     /* BTS-A20102624: Chrome FTP fix: 
      * handle the case where FTP client tries to access /shares/shares
      */
@@ -1846,7 +1850,7 @@ void command_size(char *filename)
             mapped = bftpd_cwd_mappath(filename);
         }
     }
-    /*  added end pling 06/07/2010 */
+    /* Foxconn added end pling 06/07/2010 */
 
 	if (!stat(mapped, &statbuf)) {
 		control_printf(SL_SUCCESS, "213 %i", (int) statbuf.st_size);
@@ -1982,7 +1986,7 @@ void command_auth(char *type)
 	control_printf(SL_FAILURE, "550 Not implemented yet\r\n");
 }
 
-/*  added start pling 09/16/2009 */
+/* Foxconn added start pling 09/16/2009 */
 void command_opts(char *params)
 {
     if (strcasecmp(params, "utf8 on") == 0)
@@ -1990,7 +1994,7 @@ void command_opts(char *params)
     else
   		control_printf(SL_SUCCESS, "550 %s not implemented", params);
 }
-/*  added end pling 09/16/2009 */
+/* Foxconn added end pling 09/16/2009 */
 
 /* Command parsing */
 
@@ -2035,7 +2039,7 @@ const struct command commands[] = {
 	 */    {"ADMIN_LOGIN", "(admin)", command_adminlogin, STATE_CONNECTED, 0},
 	{"MGET", "<sp> pathname", command_mget, STATE_AUTHENTICATED, 0},
 	{"MPUT", "<sp> pathname", command_mput, STATE_AUTHENTICATED, 0},
-	{"OPTS", "<sp> string <sp> val", command_opts, STATE_AUTHENTICATED, 0}, //  added pling 09/16/2009
+	{"OPTS", "<sp> string <sp> val", command_opts, STATE_AUTHENTICATED, 0}, // Foxconn added pling 09/16/2009
 	{NULL, NULL, NULL, 0, 0}
 };
 
@@ -2046,7 +2050,7 @@ void command_feat(char *params)
 	for (i = 0; commands[i].name; i++)
 		if (commands[i].showinfeat)
 			control_printf(SL_SUCCESS, " %s", commands[i].name);
-	control_printf(SL_SUCCESS, " UTF8");    //  added pling 09/16/2009
+	control_printf(SL_SUCCESS, " UTF8");    // Foxconn added pling 09/16/2009
 	control_printf(SL_SUCCESS, "211 End");
 }
 
@@ -2082,7 +2086,7 @@ int parsecmd(char *str)
 			if (!strcasecmp(config_getoption(confstr), "no")) {
                             bftpd_log("550 The command '%s' is disabled.\n",
 						commands[i].name);
-                /*  modified start pling 06/25/2009 */
+                /* Foxconn modified start pling 06/25/2009 */
                 /* Change the message sent to FTP client, as
                  * specified by Netgear.
                  */
@@ -2096,7 +2100,7 @@ int parsecmd(char *str)
                 else
 				control_printf(SL_FAILURE, "550 The command '%s' is disabled.",
 				commands[i].name);
-                /*  modified end pling 06/25/2009 */
+                /* Foxconn modified end pling 06/25/2009 */
 				return 1;
 			}
 			cutto(str, strlen(commands[i].name));

@@ -121,7 +121,7 @@ void hidegroups_end()
         }
 }
 
-/*  added start pling 06/20/2009 */
+/* Foxconn added start pling 06/20/2009 */
 #include "logging.h"
 int is_dir_allow_read(char *dir_name)
 {
@@ -147,7 +147,7 @@ int is_dir_allow_read(char *dir_name)
 
     return allow_read;
 }
-/*  added end pling 06/20/2009 */
+/* Foxconn added end pling 06/20/2009 */
 
 void bftpd_stat(char *name, FILE * client)
 {
@@ -155,7 +155,7 @@ void bftpd_stat(char *name, FILE * client)
     char temp[MAXCMD + 3], linktarget[MAXCMD + 5], perm[11], timestr[17], uid[USERLEN + 1], gid[USERLEN + 1];
     struct tm filetime;
     time_t t;
-    static int first_time = 1;  /*  added pling 06/28/2010 */
+    static int first_time = 1;  /* Foxconn added pling 06/28/2010 */
 
 
     if (lstat(name, (struct stat *) &statbuf) == -1) { // used for command_stat
@@ -164,14 +164,14 @@ void bftpd_stat(char *name, FILE * client)
     }
 
 #if 0    
-    /*  added start pling 06/20/2009 */
+    /* Foxconn added start pling 06/20/2009 */
     /* Don't let 'guest' user see "Admin-read" folders */
     if (S_ISDIR(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
     {
         if (!is_dir_allow_read(name))
             return;
     }
-    /*  added end pling 06/20/2009 */
+    /* Foxconn added end pling 06/20/2009 */
 #endif
 
     //if ( strcmp(user, "admin") != 0 ) {
@@ -181,7 +181,7 @@ void bftpd_stat(char *name, FILE * client)
 
 #ifdef S_ISLNK
 	if (S_ISLNK(statbuf.st_mode)) {
-        /*  modified start pling 03/09/2010 */
+        /* Foxconn modified start pling 03/09/2010 */
         /* Show links as directories, other Safari can't 
          * handle links properly.
          * Note: in FAT32/NTFS, there are no links.
@@ -190,15 +190,15 @@ void bftpd_stat(char *name, FILE * client)
          */
 		//strcpy(perm, "lrwxrwxrwx");
 		strcpy(perm, "drwxrwxrwx");
-        /*  modified end pling 03/09/2010 */
-        /*  modified start pling 06/20/2009 */
+        /* Foxconn modified end pling 03/09/2010 */
+        /* Foxconn modified start pling 06/20/2009 */
         /* Don't show symlink */
 #if 0
 		temp[readlink(name, temp, sizeof(temp) - 1)] = '\0';
 		sprintf(linktarget, " -> %s", temp);
 #endif
         linktarget[0] = '\0';
-        /*  modified end pling 06/20/2009 */
+        /* Foxconn modified end pling 06/20/2009 */
 	} else {
 #endif
 		strcpy(perm, "----------");
@@ -235,7 +235,7 @@ void bftpd_stat(char *name, FILE * client)
     mygetpwuid(statbuf.st_uid, passwdfile, uid)[8] = 0;
     mygetpwuid(statbuf.st_gid, groupfile, gid)[8] = 0;
 
-    /*  added start pling 06/28/2010 */
+    /* Foxconn added start pling 06/28/2010 */
     /* Fix Chrome V4.0.249.78 FTP issue;
      *  need to provide a "." directory entry for Chrome to
      *  show properly.
@@ -247,9 +247,9 @@ void bftpd_stat(char *name, FILE * client)
 			    timestr);
         first_time = 0;
     }
-    /*  added end pling 06/28/2010 */
+    /* Foxconn added end pling 06/28/2010 */
 
-    /*  modified start pling 06/29/2009 */
+    /* Foxconn modified start pling 06/29/2009 */
     /* Show big file size (>4GB) correctly */
 #if 0
 	fprintf(client, "%s %3i %-8s %-8s %8lu %s %s%s\r\n", perm,
@@ -262,7 +262,7 @@ void bftpd_stat(char *name, FILE * client)
 			(int) statbuf.st_nlink, uid, gid,
 			(unsigned long long) real_file_size,
 			timestr, name, linktarget);
-    /*  modified end pling 06/29/2009 */
+    /* Foxconn modified end pling 06/29/2009 */
 }
 
 void dirlist_one_file(char *name, FILE *client, char verbose)
@@ -291,24 +291,29 @@ void dirlist_one_file(char *name, FILE *client, char verbose)
        return;
     }
 
+    /* Foxconn added start pling 09/14/2013 */
+    /* Don't allow users to see files/dir other than /shares */
     char *cwd = bftpd_cwd_getcwd();
     if (cwd != NULL)
     {
         if (strcmp(cwd, "/") == 0 && strcmp(name, "shares") != 0)
         {
+            //bftpd_log("ONLY /shares is allowed! RETURN, NOT show\n");
             free(cwd);
             return;
         }
         free(cwd);
     }
-    /*  added start pling 06/20/2009 */
+    /* Foxconn added end pling 09/14/2013 */
+
+    /* Foxconn added start pling 06/20/2009 */
     /* Don't let 'guest' user see "Admin-read" folders */
     if (S_ISDIR(statbuf.st_mode) || S_ISLNK(statbuf.st_mode))
     {
           if (!is_dir_allow_read(name))
           return;
     }
-    /*  added end pling 06/20/2009 */
+    /* Foxconn added end pling 06/20/2009 */
 
     if (verbose)
         bftpd_stat(name, client);
