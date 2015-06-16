@@ -632,7 +632,9 @@ int main (int argc, char **argv)
 
             myaddr.sin_addr.s_addr =
                 inet_addr (config_getoption ("BIND_TO_ADDR"));
-            
+#if defined(_XDSL_PRODUCT)
+            myaddr.sin_family = AF_INET; /* foxconn added */
+#endif
             printf("write pid:%d tp /var/run/bftpd_wan.pid.\n", getpid());
 
             if (!(pfp = fopen ("/var/run/bftpd_wan.pid", "w")))
@@ -750,9 +752,10 @@ int main (int argc, char **argv)
                         printf("child %d WIFSTOPPED\n", pid);
                     if (WSTOPSIG(status))
                         printf("child %d WSTOPSIG\n", pid);
+#if !defined(_XDSL_PRODUCT)
                     if (WIFCONTINUED(status))
                         printf("child %d WIFCONTINUED\n", pid);
-
+#endif
 #if 0   /* don't need to keep child pid anymore */
 		    tmp_pid = malloc (sizeof (struct bftpd_childpid));
                     tmp_pid->pid = pid;
