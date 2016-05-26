@@ -934,22 +934,23 @@ int main (int argc, char **argv)
     }
     replace (str, "%i", (char *) inet_ntoa (name.sin_addr));
 
-	/* Foxconn modified start pling 06/10/2009*/
-	/* If all shared folders are 'All - no password',
-	 * then no need to login for "FTP",
-	 * by auto-login as user 'guest'.
-	 */
-	FILE* fp = NULL;
-	fp = fopen("/tmp/all_no_password","r");
-	if (fp != NULL)
-	{
-		fclose(fp);
-		command_user("guest");
-		all_no_password = 1;
-	}
-	else
-		control_printf (SL_SUCCESS, "220 %s", str);
-	/* Foxconn modified end pling 06/10/2009*/
+    /* Foxconn modified start pling 06/10/2009*/
+    /* If all shared folders are 'All - no password',
+     * then no need to login for "FTP",
+     * by auto-login as user 'guest'.
+     */
+    FILE* fp = NULL;
+    fp = fopen("/tmp/all_no_password","r");
+    if (fp != NULL)
+    {
+        fclose(fp);
+        //command_user("guest");
+        command_user("no_pass");
+        all_no_password = 1;
+    }
+    else
+        control_printf (SL_SUCCESS, "220 %s", str);
+    /* Foxconn modified end pling 06/10/2009*/
 
     /* We might not get any data, so let's set an alarm before the
        first read. -- Jesse <slicer69@hotmail.com> */
