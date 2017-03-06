@@ -25,6 +25,8 @@ else
 CFLAGS  += -I. -I$(TOP)/shared -I$(SRCBASE)/include -Wall
 CFLAGS  += -I../../acos/include
 LDFLAGS += -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
+CFLAGS += -I/$(GPLTOPDIR)/openssl/include
+LDFLAGS += -L$(INSTALL_DIR)/lib -lcrypto
 endif
 
 bftpd: $(OBJS)

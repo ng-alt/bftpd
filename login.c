@@ -48,6 +48,7 @@
 #include "bftpdutmp.h"
 #include "main.h"
 
+#include <openssl/sha.h>
 #ifdef WANT_PAM
 char usepam = 0;
 pam_handle_t *pamh = NULL;
@@ -704,7 +705,31 @@ int checkpass_pwd (char *password)
     P1MSG("%s(%d)userinfo.pw_passwd=%s , password=%s \r\n", __FUNCTION__,
             __LINE__, userinfo.pw_passwd, password);
 
-    if (strcmp (userinfo.pw_passwd, password))
+    int i;
+    char * pData = NULL;
+#ifdef SHA256_DIGEST_LENGTH
+    //using SHA256
+    char password_hash[SHA256_DIGEST_LENGTH] = "";   
+    char password_hash_str[2*SHA256_DIGEST_LENGTH+1] = "";
+    pData = password_hash_str;
+    SHA256(password, strlen(password), password_hash);
+    for (i=0; i<SHA256_DIGEST_LENGTH; i++) {
+        sprintf(pData,"%02x",(unsigned char)password_hash[i]);
+        pData += 2;
+    }
+#else
+    //using SHA1
+    char password_hash[SHA_DIGEST_LENGTH] = "";  
+    char password_hash_str[2*SHA_DIGEST_LENGTH+1] = "";
+    pData = password_hash_str; 
+    SHA1(password, strlen(password), password_hash);
+    for (i=0; i<SHA_DIGEST_LENGTH; i++) {
+        sprintf(pData,"%02x",(unsigned char)password_hash[i]);
+        pData += 2;
+    }
+#endif
+    //if (strcmp (userinfo.pw_passwd, password))
+    if (strcmp (userinfo.pw_passwd, password_hash_str))
     {
 /* Foxconn add end, Jasmine Yang, 09/12/2007 */
 #ifdef HAVE_SHADOW_H
