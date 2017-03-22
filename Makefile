@@ -19,6 +19,10 @@ LDFLAGS=-Wl,-allow-shlib-undefined
 
 LDFLAGS += -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 
+CFLAGS += -I/$(GPLTOPDIR)/openssl/include
+LDFLAGS += -L$(INSTALL_DIR)/lib -lcrypto
+
+
 bftpd: $(OBJS)
 	./mksources $(DIRPAX)
 	$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o bftpd

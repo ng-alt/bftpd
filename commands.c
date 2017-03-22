@@ -2118,8 +2118,18 @@ int parsecmd(char *str)
 			}
 			cutto(str, strlen(commands[i].name));
 			p = str;
-			while ((*p) && ((*p == ' ') || (*p == '\t')))
-				p++;
+			/* Foxconn modified start pling 08/09/2016 */ 
+			/* R6400 TD#173 / R8500 TD#464, fix problem is password contains a
+			 * leading space */
+			if (strcmp(commands[i].name, "PASS") == 0) {
+				p++; /* eat the space */
+				while ((*p) && (*p == '\t'))
+					p++;
+			} else {
+				while ((*p) && ((*p == ' ') || (*p == '\t')))
+					p++;
+			}
+			/* Foxconn modified end pling 08/09/2016 */ 
 			memmove(str, p, strlen(str) - (p - str) + 1);
 			if (state >= commands[i].state_needed) {
 				commands[i].function(str);
