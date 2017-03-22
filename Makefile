@@ -13,11 +13,23 @@ HEADERS=bftpdutmp.h commands.h commands_admin.h cwd.h dirlist.h list.h login.h l
 OBJS=bftpdutmp.o commands.o commands_admin.o cwd.o dirlist.o list.o login.o logging.o main.o mystring.o options.o
 SRCS=bftpdutmp.c commands.c commands_admin.c cwd.c dirlist.c list.c login.c logging.c main.c mystring.c options.c
 
+
+LDFLAGS=-Wl,-allow-shlib-undefined
+ifeq ($(CONFIG_XDSL_PRODUCT),y)
+LDFLAGS	+= -L$(ACOSTOPDIR)/nvram -L$(INSTALL_DIR)/lib -lnvram 
+LDFLAGS += -L$(ACOSTOPDIR)/shared -L$(INSTALL_DIR)/lib -lacos_shared
+LDFLAGS	+= -L$(ACOSTOPDIR)/nvram -L$(INSTALL_DIR)/nvram/usr/lib -lnvram
+CFLAGS	+= -I. -I$(ACOSTOPDIR)/include
+CFLAGS += -D_XDSL_PRODUCT
+else
 CFLAGS  += -I. -I$(TOP)/shared -I$(SRCBASE)/include -Wall
 CFLAGS  += -I../../acos/include
-LDFLAGS=-Wl,-allow-shlib-undefined
-
 LDFLAGS += -L$(ROUTERDIR)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
+endif
+#Foxconn add start, Ken Chen, 02/07/2017, no plain text in /etc/passwd
+CFLAGS += -I/$(GPLTOPDIR)/openssl/include
+LDFLAGS += -L$(INSTALL_DIR)/lib -lcrypto
+#Foxconn add end, Ken Chen, 02/07/2017, no plain text in /etc/passwd 
 
 bftpd: $(OBJS)
 	./mksources $(DIRPAX)
