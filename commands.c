@@ -2120,7 +2120,7 @@ int parsecmd(char *str)
 			}
 			cutto(str, strlen(commands[i].name));
 			p = str;
-			while ((*p) && ((*p == ' ') || (*p == '\t')))
+			if ((*p) && ((*p == ' ') || (*p == '\t')))
 				p++;
 			memmove(str, p, strlen(str) - (p - str) + 1);
 			if (state >= commands[i].state_needed) {
